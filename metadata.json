@@ -1,0 +1,7 @@
+{
+  "name": "English Reflex Gym",
+  "description": "A high-performance English speaking reflex trainer using smart speech recognition and AI evaluation.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
