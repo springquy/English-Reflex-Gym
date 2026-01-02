@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { X, Save, Settings as SettingsIcon, Infinity, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Save, Settings as SettingsIcon, Infinity, Clock, Key, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { GameSettings } from '../types';
 
 interface SettingsModalProps {
@@ -11,6 +11,7 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose }) => {
   const [tempSettings, setTempSettings] = React.useState(settings);
+  const [showKey, setShowKey] = useState(false);
 
   const getTimeModeDescription = (time: number) => {
     switch (time) {
@@ -24,8 +25,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.1)] animate-in zoom-in-95 duration-200">
-        <div className="flex justify-between items-center mb-8">
+      <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-md shadow-[0_20px_50px_rgba(0,0,0,0.1)] animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
             <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">
               <SettingsIcon className="w-6 h-6 text-slate-500" />
@@ -40,10 +41,39 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
           </button>
         </div>
 
-        <div className="space-y-10">
+        <div className="space-y-8">
+           {/* Section: API Key */}
+           <section className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50">
+            <label className="flex items-center justify-between text-[11px] font-black text-indigo-900/60 uppercase tracking-[0.15em] mb-2">
+              <span className="flex items-center gap-1.5"><Key className="w-3.5 h-3.5" /> Gemini API Key (Miễn phí)</span>
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-600 hover:underline cursor-pointer normal-case font-bold">
+                 Lấy key tại đây <ExternalLink className="w-3 h-3" />
+              </a>
+            </label>
+            <div className="relative">
+              <input
+                type={showKey ? "text" : "password"}
+                value={tempSettings.apiKey || ''}
+                onChange={(e) => setTempSettings(s => ({ ...s, apiKey: e.target.value }))}
+                placeholder="Dán API Key vào đây..."
+                className="w-full bg-white border border-indigo-100 text-slate-800 text-sm font-medium rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-300 pr-10"
+              />
+              <button 
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="mt-2 text-[10px] text-slate-400 font-medium leading-relaxed">
+              Key được lưu trên trình duyệt của bạn. Để trống để dùng key mặc định (nếu có).
+            </p>
+          </section>
+
           {/* Section: Số lượng câu hỏi với Slider */}
           <section>
-            <div className="flex justify-between items-end mb-6">
+            <div className="flex justify-between items-end mb-4">
               <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em]">
                 Số lượng câu hỏi <span className="text-indigo-600 ml-1 text-sm">({tempSettings.questionCount})</span>
               </label>
@@ -86,9 +116,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                 </button>
               ))}
             </div>
-            <div className="mt-4 p-4 bg-indigo-50/50 rounded-2xl flex items-center gap-3 border border-indigo-100/50">
-              <Clock className="w-5 h-5 text-indigo-500 shrink-0" />
-              <p className="text-sm font-semibold text-indigo-900/70 leading-snug">
+            <div className="mt-4 flex items-center gap-3 text-slate-500">
+              <Clock className="w-4 h-4 shrink-0" />
+              <p className="text-xs font-medium">
                 {getTimeModeDescription(tempSettings.timePerQuestion)}
               </p>
             </div>
@@ -98,9 +128,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
         <button 
           onClick={() => { 
             onSave(tempSettings); 
-            onClose(); 
+            // onClose(); // Let App handle close
           }}
-          className="w-full mt-12 py-5 bg-[#0f172a] text-white rounded-[1.5rem] font-bold text-lg hover:bg-slate-800 transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95"
+          className="w-full mt-8 py-5 bg-[#0f172a] text-white rounded-[1.5rem] font-bold text-lg hover:bg-slate-800 transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95"
         >
           <Save className="w-5 h-5" /> Lưu cài đặt
         </button>

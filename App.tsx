@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu } from './components/Menu';
 import { Game } from './components/Game';
 import { Result } from './components/Result';
@@ -9,7 +9,8 @@ import { GameView, GameSettings, Category } from './types';
 const DEFAULT_SETTINGS: GameSettings = {
   questionCount: 5,
   timePerQuestion: 0,
-  selectedCategory: 'All'
+  selectedCategory: 'All',
+  apiKey: '' // Default to empty, will use process.env if available in service fallback
 };
 
 export default function App() {
@@ -17,6 +18,25 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [results, setResults] = useState({ score: 0, total: 0 });
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('english-gym-settings');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setSettings(prev => ({ ...prev, ...parsed }));
+      } catch (e) {
+        console.error("Failed to load settings", e);
+      }
+    }
+  }, []);
+
+  // Save settings to localStorage whenever they change
+  const handleSaveSettings = (newSettings: GameSettings) => {
+    setSettings(newSettings);
+    localStorage.setItem('english-gym-settings', JSON.stringify(newSettings));
+  };
 
   const startGame = () => setView(GameView.GAME);
   const finishGame = (score: number, total: number) => {
@@ -32,7 +52,7 @@ export default function App() {
           onStart={startGame} 
           onOpenSettings={() => setShowSettings(true)}
           settings={settings}
-          setSettings={setSettings}
+          setSettings={handleSaveSettings}
         />
       )}
 
@@ -56,7 +76,7 @@ export default function App() {
       {showSettings && (
         <SettingsModal 
           settings={settings} 
-          onSave={setSettings} 
+          onSave={(s) => { handleSaveSettings(s); setShowSettings(false); }} 
           onClose={() => setShowSettings(false)} 
         />
       )}

@@ -1,21 +1,28 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../types";
 
-// Sử dụng biến môi trường cho API Key
-const apiKey = process.env.API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+export const evaluateAnswerWithAI = async (
+  userInput: string, 
+  question: Question, 
+  userApiKey?: string
+): Promise<{ isCorrect: boolean, feedback: string }> => {
+  
+  // Ưu tiên key từ settings, sau đó mới đến env
+  const apiKey = userApiKey || process.env.API_KEY;
 
-export const evaluateAnswerWithAI = async (userInput: string, question: Question): Promise<{ isCorrect: boolean, feedback: string }> => {
-  // Fallback nếu không có key hoặc lỗi khởi tạo
-  if (!ai) {
+  // Fallback nếu không có key nào
+  if (!apiKey) {
     return { 
       isCorrect: false, 
-      feedback: "Offline Mode: Câu trả lời chưa khớp chính xác với đáp án mẫu." 
+      feedback: "Chưa có API Key. Vui lòng vào Cài đặt để nhập Key miễn phí." 
     };
   }
 
   try {
-    // Sử dụng model Flash để tốc độ nhanh nhất và miễn phí
+    // Khởi tạo instance mới mỗi lần gọi để đảm bảo dùng đúng key mới nhất
+    const ai = new GoogleGenAI({ apiKey });
+
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview', 
       config: {
@@ -65,9 +72,14 @@ export const evaluateAnswerWithAI = async (userInput: string, question: Question
     
     return JSON.parse(text);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("AI Error:", error);
-    // Fallback an toàn để app không crash
-    return { isCorrect: false, feedback: "Lỗi kết nối AI, vui lòng thử lại." };
+    
+    // Check lỗi API key không hợp lệ
+    if (error.toString().includes("API_KEY_INVALID") || error.status === 400) {
+       return { isCorrect: false, feedback: "API Key không hợp lệ. Vui lòng kiểm tra lại trong Cài đặt." };
+    }
+
+    return { isCorrect: false, feedback: "Lỗi kết nối AI. Đang dùng bộ chấm điểm cơ bản." };
   }
 };

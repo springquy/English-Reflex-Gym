@@ -59,11 +59,12 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
       setFeedback({ isCorrect: true, msg: "Chính xác! Phát âm rất tốt." });
       setGameState(GameState.REVIEWING);
     } else {
-      // BƯỚC 2: NẾU SAI LOCAL, GỌI AI ĐỂ CỨU CÁNH (XỬ LÝ ĐỒNG NGHĨA)
+      // BƯỚC 2: NẾU SAI LOCAL, GỌI AI ĐỂ CỨU CÁNH
       setGameState(GameState.REVIEWING);
-      setIsAIEvaluating(true); // Bật trạng thái loading AI
+      setIsAIEvaluating(true); 
       
-      const aiResult = await evaluateAnswerWithAI(textToProcess, currentQ);
+      // Truyền API Key từ settings vào
+      const aiResult = await evaluateAnswerWithAI(textToProcess, currentQ, settings.apiKey);
       
       if (!isComponentMounted.current) return;
       setIsAIEvaluating(false);
@@ -75,7 +76,7 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
         setFeedback({ isCorrect: false, msg: aiResult.feedback });
       }
     }
-  }, [currentQ]);
+  }, [currentQ, settings.apiKey]);
 
   const stopListening = useCallback(() => {
     if (recognitionRef.current) {

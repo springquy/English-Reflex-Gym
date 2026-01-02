@@ -31,6 +31,7 @@ export interface GameSettings {
   questionCount: number;
   timePerQuestion: number; // 0 for unlimited
   selectedCategory: Category;
+  apiKey?: string; // Optional user-provided API Key
 }
 
 export interface Feedback {
