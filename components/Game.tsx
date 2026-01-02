@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Volume2, Zap, HelpCircle, CheckCircle, XCircle, ArrowRight, BookOpen, PlayCircle, Loader2, MicOff } from 'lucide-react';
+import { X, Volume2, Zap, HelpCircle, CheckCircle, XCircle, ArrowRight, BookOpen, PlayCircle, Loader2, MicOff, Mic } from 'lucide-react';
 import { GameSettings, GameState, Question, Feedback } from '../types';
 import { MOCK_DATA } from '../constants';
 import { checkAnswerLocally } from '../services/textUtils';
@@ -75,14 +75,21 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
   }, [currentQ]);
 
   const startListening = useCallback(() => {
-    if (!recognitionRef.current || gameState !== GameState.THINKING) return;
+    if (!recognitionRef.current || gameState !== GameState.THINKING && gameState !== GameState.LISTENING) return;
+    
+    // If we are already running, don't restart unless necessary
     try {
       recognitionRef.current.start();
       setGameState(GameState.LISTENING);
-      setTranscript('');
       setMicError(null);
-    } catch (e) {
-      console.warn("Recognition already started or error:", e);
+    } catch (e: any) {
+      // If error is "recognition has already started", we just ensure state is correct
+      if (e?.message?.includes('already started')) {
+         setGameState(GameState.LISTENING);
+         setMicError(null);
+      } else {
+         console.warn("Recognition start error:", e);
+      }
     }
   }, [gameState]);
 
@@ -96,6 +103,7 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
     setFeedback(null);
     setTranscript('');
     setShowHint(0);
+    setMicError(null);
     if (qIndex < questions.length - 1) {
       setQIndex(prev => prev + 1);
       setGameState(GameState.THINKING);
@@ -132,22 +140,30 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
       recognition.onerror = (event: any) => {
         console.error("Speech Recognition Error:", event.error);
         if (event.error === 'not-allowed') {
-          setMicError("Vui lòng cấp quyền sử dụng Micro để luyện tập.");
-        } else if (event.error === 'no-speech' && gameState === GameState.LISTENING) {
-           // Silent handling - it will trigger onend soon
+          setMicError("Vui lòng cho phép truy cập Micro.");
+        } else if (event.error === 'no-speech') {
+           // Ignore no-speech, let it loop
+        } else if (event.error === 'network') {
+           setMicError("Lỗi mạng. Vui lòng kiểm tra kết nối.");
+        } else {
+           // For other errors, we might want to let user retry manually
         }
       };
 
       recognition.onend = () => {
-        // If it ended while we were supposed to be listening and no result was achieved
+        // Only restart if we are still in LISTENING state and haven't gotten an answer
         if (isComponentMounted.current && gameState === GameState.LISTENING && !feedback) {
-           try { recognition.start(); } catch(e) {}
+           try { 
+             recognition.start(); 
+           } catch(e) {
+             // If auto-restart fails, we might leave it to the user to press the button
+           }
         }
       };
 
       recognitionRef.current = recognition;
     } else {
-      setMicError("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói.");
+      setMicError("Trình duyệt không hỗ trợ (Dùng Chrome/Edge).");
     }
 
     return () => {
@@ -161,7 +177,10 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
   // Thinking to Listening transition
   useEffect(() => {
     if (gameState === GameState.THINKING) {
-      const t = setTimeout(startListening, 600);
+      const t = setTimeout(() => {
+         setTranscript('');
+         startListening();
+      }, 600);
       return () => clearTimeout(t);
     }
   }, [gameState, startListening]);
@@ -264,7 +283,7 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
                 : 'bg-white border-slate-100 shadow-[0_10px_40px_rgba(0,0,0,0.03)]'
               }
             `}>
-              {gameState === GameState.LISTENING && (
+              {gameState === GameState.LISTENING && !micError && (
                 <div className="absolute inset-0 flex items-center justify-center opacity-40 pointer-events-none">
                   <Visualizer />
                 </div>
@@ -285,9 +304,15 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
               )}
 
               {micError && (
-                <div className="flex flex-col items-center gap-2 text-red-500 bg-red-50 p-4 rounded-2xl border border-red-100">
-                  <MicOff className="w-6 h-6" />
-                  <p className="text-sm font-bold">{micError}</p>
+                <div className="flex flex-col items-center gap-3 text-red-500 bg-red-50 p-6 rounded-2xl border border-red-100 z-20">
+                  <MicOff className="w-8 h-8" />
+                  <p className="text-sm font-bold text-center">{micError}</p>
+                  <button 
+                    onClick={() => { setMicError(null); startListening(); }}
+                    className="mt-2 px-4 py-2 bg-white border border-red-200 rounded-xl text-xs font-black uppercase text-red-500 shadow-sm hover:bg-red-50"
+                  >
+                    Thử lại
+                  </button>
                 </div>
               )}
             </div>
@@ -383,11 +408,14 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
       {/* Footer Controls */}
       <footer className="p-6 bg-white border-t border-slate-100 shrink-0 z-10">
         <div className="max-w-md mx-auto">
-          {gameState === GameState.LISTENING && (
-            <div className="w-full py-5 bg-white border-2 border-indigo-100 text-indigo-600 rounded-[1.8rem] font-black text-lg flex items-center justify-center gap-4 animate-pulse shadow-sm">
+          {gameState === GameState.LISTENING && !micError && (
+            <button 
+               onClick={startListening}
+               className="w-full py-5 bg-white border-2 border-indigo-100 text-indigo-600 rounded-[1.8rem] font-black text-lg flex items-center justify-center gap-4 animate-pulse shadow-sm hover:bg-indigo-50 transition-colors"
+            >
                <div className="w-3.5 h-3.5 bg-red-500 rounded-full animate-ping"></div>
                ĐANG GHI ÂM...
-            </div>
+            </button>
           )}
 
           {gameState === GameState.REVIEWING && !isAIEvaluating && (
