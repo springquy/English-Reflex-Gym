@@ -2,9 +2,20 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize safely. If no key is provided, ai instance will be null.
+const apiKey = process.env.API_KEY;
+const ai = (apiKey && apiKey.length > 0) ? new GoogleGenAI({ apiKey }) : null;
 
 export const evaluateAnswerWithAI = async (userInput: string, question: Question): Promise<{ isCorrect: boolean, feedback: string }> => {
+  // If AI is not configured, fallback to a safe default response
+  if (!ai) {
+    console.warn("AI Key missing. Skipping AI evaluation.");
+    return { 
+      isCorrect: false, 
+      feedback: "Chưa cấu hình API Key, sử dụng kiểm tra cơ bản." 
+    };
+  }
+
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -33,7 +44,9 @@ export const evaluateAnswerWithAI = async (userInput: string, question: Question
       }
     });
 
-    return JSON.parse(response.text);
+    const text = response.text;
+    if (!text) throw new Error("Empty response from AI");
+    return JSON.parse(text);
   } catch (error) {
     console.error("AI Evaluation failed:", error);
     // Fallback if AI fails
