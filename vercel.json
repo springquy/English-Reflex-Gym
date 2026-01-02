@@ -1,0 +1,5 @@
+
+{
+  "framework": "vite",
+  "installCommand": "rm -rf package-lock.json && npm install"
+}
