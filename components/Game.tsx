@@ -1,8 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Volume2, Zap, HelpCircle, CheckCircle, XCircle, ArrowRight, BookOpen, Loader2, MicOff, Mic, Tag, BarChart, Sparkles } from 'lucide-react';
-import { GameSettings, GameState, Feedback } from '../types';
-import { MOCK_DATA } from '../constants';
+import { GameSettings, GameState, Feedback, Question } from '../types';
 import { checkAnswerLocally } from '../services/textUtils';
 import { playAudio } from '../services/speechService';
 import { evaluateAnswerWithAI } from '../services/aiService';
@@ -10,15 +9,21 @@ import { Visualizer } from './Visualizer';
 
 interface GameProps {
   settings: GameSettings;
+  questionsSource: Question[]; // Changed to accept data source
   onEnd: (score: number, total: number) => void;
   onExit: () => void;
 }
 
-export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
+export const Game: React.FC<GameProps> = ({ settings, questionsSource, onEnd, onExit }) => {
+  // Use passed questionsSource instead of importing MOCK_DATA directly
   const [questions] = useState(() => {
     let filtered = settings.selectedCategory === 'All' 
-      ? MOCK_DATA 
-      : MOCK_DATA.filter(q => q.category === settings.selectedCategory);
+      ? questionsSource 
+      : questionsSource.filter(q => q.category === settings.selectedCategory);
+    
+    // If filtered is empty (e.g. category mismatch after import), fallback to all
+    if (filtered.length === 0) filtered = questionsSource;
+
     const shuffled = [...filtered].sort(() => 0.5 - Math.random());
     return settings.questionCount >= 999 ? shuffled : shuffled.slice(0, settings.questionCount);
   });
@@ -43,6 +48,12 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
   const latestTranscriptRef = useRef('');
 
   const currentQ = questions[qIndex];
+  // Ensure currentQ exists (safety check)
+  if (!currentQ) {
+      onEnd(0, 0);
+      return null;
+  }
+
   const isTimeUnlimited = settings.timePerQuestion === 0;
 
   const processAnswer = useCallback(async (textToProcess: string) => {
@@ -51,7 +62,7 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
     isProcessingRef.current = true;
     setTranscript(textToProcess);
 
-    // BƯỚC 1: KIỂM TRA LOCAL (MIỄN PHÍ & NHANH)
+    // BƯỚC 1: KIỂM TRA LOCAL
     const isCorrectLocally = checkAnswerLocally(textToProcess, currentQ);
     
     if (isCorrectLocally) {
@@ -59,11 +70,10 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
       setFeedback({ isCorrect: true, msg: "Chính xác! Phát âm rất tốt." });
       setGameState(GameState.REVIEWING);
     } else {
-      // BƯỚC 2: NẾU SAI LOCAL, GỌI AI ĐỂ CỨU CÁNH
+      // BƯỚC 2: NẾU SAI LOCAL, GỌI AI
       setGameState(GameState.REVIEWING);
       setIsAIEvaluating(true); 
       
-      // Truyền API Key từ settings vào
       const aiResult = await evaluateAnswerWithAI(textToProcess, currentQ, settings.apiKey);
       
       if (!isComponentMounted.current) return;
@@ -294,19 +304,25 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
           
           <div className="md:col-span-7 flex flex-col gap-6 md:gap-10">
             <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-4 duration-500">
-              <div className={`
-                 px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shadow-sm
-                 ${currentQ.level === 'Easy' ? 'bg-green-50 border-green-100 text-green-700' : 
-                   currentQ.level === 'Medium' ? 'bg-amber-50 border-amber-100 text-amber-700' : 
-                   'bg-rose-50 border-rose-100 text-rose-700'}
-              `}>
-                 <BarChart className="w-3.5 h-3.5" />
-                 <span className="text-[10px] font-black uppercase tracking-wider">{currentQ.level}</span>
-              </div>
-              <div className="px-3 py-1.5 rounded-lg border border-slate-100 bg-white text-slate-500 flex items-center gap-1.5 shadow-sm">
-                 <Tag className="w-3.5 h-3.5" />
-                 <span className="text-[10px] font-black uppercase tracking-wider">{currentQ.category}</span>
-              </div>
+              {/* Only show Level badge if it exists */}
+              {currentQ.level && (
+                <div className={`
+                  px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shadow-sm
+                  ${currentQ.level === 'Easy' ? 'bg-green-50 border-green-100 text-green-700' : 
+                    currentQ.level === 'Medium' ? 'bg-amber-50 border-amber-100 text-amber-700' : 
+                    'bg-rose-50 border-rose-100 text-rose-700'}
+                `}>
+                  <BarChart className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">{currentQ.level}</span>
+                </div>
+              )}
+              {/* Only show Category badge if it exists */}
+              {currentQ.category && (
+                <div className="px-3 py-1.5 rounded-lg border border-slate-100 bg-white text-slate-500 flex items-center gap-1.5 shadow-sm">
+                  <Tag className="w-3.5 h-3.5" />
+                  <span className="text-[10px] font-black uppercase tracking-wider">{currentQ.category}</span>
+                </div>
+              )}
             </div>
 
             <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.15] tracking-tight animate-in fade-in slide-in-from-left-4 duration-500 delay-75">
@@ -363,32 +379,39 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
           <div className="md:col-span-5 w-full">
             {gameState !== GameState.REVIEWING && (
               <div className="flex flex-col items-center justify-center space-y-4 md:min-h-[300px]">
-                {showHint === 0 ? (
-                  <button 
-                    onClick={() => setShowHint(1)}
-                    className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-black text-[11px] uppercase tracking-widest transition-all px-6 py-4 rounded-2xl hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 group"
-                  >
-                    <HelpCircle className="w-5 h-5 group-hover:scale-110 transition-transform" /> 
-                    Gợi ý <span className="ml-1 bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[9px] border border-slate-200">Q</span>
-                  </button>
-                ) : showHint === 1 ? (
-                  <div 
-                    className="w-full bg-amber-50 border border-amber-100 p-6 md:p-8 rounded-[2rem] text-center animate-in slide-in-from-right-4 cursor-pointer shadow-sm hover:shadow-md transition-all group"
-                    onClick={() => setShowHint(2)}
-                  >
-                    <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3">CẤU TRÚC GỢI Ý</p>
-                    <p className="text-xl md:text-2xl font-bold text-amber-900 font-mono tracking-tight">{currentQ.hint.structure}</p>
-                    <p className="text-[10px] text-amber-400 mt-4 font-bold group-hover:text-amber-600 transition-colors">Bấm (hoặc Q) để xem từ vựng</p>
-                  </div>
+                {/* Hints are now optional. Only show if hint data exists */}
+                {currentQ.hint?.structure || currentQ.hint?.vocab ? (
+                    <>
+                        {showHint === 0 ? (
+                        <button 
+                            onClick={() => setShowHint(1)}
+                            className="flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-black text-[11px] uppercase tracking-widest transition-all px-6 py-4 rounded-2xl hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 group"
+                        >
+                            <HelpCircle className="w-5 h-5 group-hover:scale-110 transition-transform" /> 
+                            Gợi ý <span className="ml-1 bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded text-[9px] border border-slate-200">Q</span>
+                        </button>
+                        ) : showHint === 1 && currentQ.hint.structure ? (
+                        <div 
+                            className="w-full bg-amber-50 border border-amber-100 p-6 md:p-8 rounded-[2rem] text-center animate-in slide-in-from-right-4 cursor-pointer shadow-sm hover:shadow-md transition-all group"
+                            onClick={() => setShowHint(2)}
+                        >
+                            <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3">CẤU TRÚC GỢI Ý</p>
+                            <p className="text-xl md:text-2xl font-bold text-amber-900 font-mono tracking-tight">{currentQ.hint.structure}</p>
+                            <p className="text-[10px] text-amber-400 mt-4 font-bold group-hover:text-amber-600 transition-colors">Bấm (hoặc Q) để xem từ vựng</p>
+                        </div>
+                        ) : (
+                        <div 
+                            className="w-full bg-blue-50 border border-blue-100 p-6 md:p-8 rounded-[2rem] text-center animate-in slide-in-from-right-4 shadow-sm cursor-pointer hover:shadow-md transition-all group"
+                            onClick={() => setShowHint(1)}
+                        >
+                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3">TỪ KHÓA QUAN TRỌNG</p>
+                            <p className="text-xl md:text-2xl font-bold text-blue-900 font-mono tracking-tight">{currentQ.hint?.vocab || '...'}</p>
+                            <p className="text-[10px] text-blue-400 mt-4 font-bold group-hover:text-blue-600 transition-colors">Bấm (hoặc Q) để xem cấu trúc</p>
+                        </div>
+                        )}
+                    </>
                 ) : (
-                  <div 
-                    className="w-full bg-blue-50 border border-blue-100 p-6 md:p-8 rounded-[2rem] text-center animate-in slide-in-from-right-4 shadow-sm cursor-pointer hover:shadow-md transition-all group"
-                    onClick={() => setShowHint(1)}
-                  >
-                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3">TỪ KHÓA QUAN TRỌNG</p>
-                    <p className="text-xl md:text-2xl font-bold text-blue-900 font-mono tracking-tight">{currentQ.hint.vocab}</p>
-                    <p className="text-[10px] text-blue-400 mt-4 font-bold group-hover:text-blue-600 transition-colors">Bấm (hoặc Q) để xem cấu trúc</p>
-                  </div>
+                    <div className="text-slate-300 text-xs font-medium uppercase tracking-widest">Không có gợi ý</div>
                 )}
               </div>
             )}
@@ -444,11 +467,13 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
                       </button>
                     ))}
                   </div>
-
-                  <div className="p-4 bg-indigo-50/40 rounded-2xl flex gap-3 items-start border border-indigo-100/50">
-                    <BookOpen className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
-                    <p className="text-xs font-semibold text-slate-600 leading-relaxed italic">{currentQ.note}</p>
-                  </div>
+                  
+                  {currentQ.note && (
+                    <div className="p-4 bg-indigo-50/40 rounded-2xl flex gap-3 items-start border border-indigo-100/50">
+                        <BookOpen className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" />
+                        <p className="text-xs font-semibold text-slate-600 leading-relaxed italic">{currentQ.note}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

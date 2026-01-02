@@ -3,6 +3,7 @@ import { FILLER_WORDS, CONTRACTIONS } from '../constants';
 import { Question } from '../types';
 
 export const normalizeText = (text: string): string => {
+  if (!text) return ""; // Handle possibly undefined text
   let normalized = text.toLowerCase();
   // Remove punctuation
   normalized = normalized.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
@@ -58,7 +59,7 @@ export const checkAnswerLocally = (userInput: string, questionData: Question): b
   const normalizedInput = normalizeText(userInput);
   const inputWords = normalizedInput.split(/\s+/).filter(w => w.length > 0);
   
-  const allAnswers = [questionData.main_answer, ...questionData.variations];
+  const allAnswers = [questionData.main_answer, ...(questionData.variations || [])];
   
   for (const answer of allAnswers) {
     const normalizedTarget = normalizeText(answer);

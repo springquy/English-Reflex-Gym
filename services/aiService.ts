@@ -48,14 +48,14 @@ export const evaluateAnswerWithAI = async (
                 Context:
                 - Vietnamese Meaning: "${question.vietnamese}"
                 - Target Answer: "${question.main_answer}"
-                - Accepted Variations: ${JSON.stringify(question.variations)}
+                - Accepted Variations: ${JSON.stringify(question.variations || [])}
                 
                 Learner's Input: "${userInput}"
 
                 Evaluation Logic:
                 1. **Meaning**: Does the learner convey the correct meaning? (e.g. "purchase" vs "buy" is OK).
                 2. **Grammar**: 
-                   - Level '${question.level}': ${question.level === 'Hard' ? 'Strict grammar check.' : 'Minor grammar slips allowed if meaning is clear.'}
+                   - Level '${question.level || 'Medium'}': ${question.level === 'Hard' ? 'Strict grammar check.' : 'Minor grammar slips allowed if meaning is clear.'}
                 
                 Return JSON:
                 - isCorrect: true/false

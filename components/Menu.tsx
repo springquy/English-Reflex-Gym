@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Mic, Play, Settings, Zap, History, Target } from 'lucide-react';
+import { Mic, Play, Settings, Zap, History, Target, Database } from 'lucide-react';
 import { CATEGORIES } from '../constants';
 import { Category, GameSettings } from '../types';
 
@@ -9,12 +9,12 @@ interface MenuProps {
   onOpenSettings: () => void;
   settings: GameSettings;
   setSettings: React.Dispatch<React.SetStateAction<GameSettings>>;
+  hasCustomData: boolean;
 }
 
-export const Menu: React.FC<MenuProps> = ({ onStart, onOpenSettings, settings, setSettings }) => {
+export const Menu: React.FC<MenuProps> = ({ onStart, onOpenSettings, settings, setSettings, hasCustomData }) => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-4 animate-in fade-in zoom-in duration-500 overflow-hidden relative">
-      {/* Settings Button - Bigger & Repositioned */}
       <div className="absolute top-6 right-6">
         <button 
           onClick={onOpenSettings}
@@ -26,7 +26,6 @@ export const Menu: React.FC<MenuProps> = ({ onStart, onOpenSettings, settings, s
 
       <div className="max-w-xl w-full text-center space-y-8">
         <div className="space-y-5">
-          {/* Logo Section - Slightly more compact */}
           <div className="relative inline-block group">
             <div className="absolute -inset-4 bg-indigo-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             <div className="relative w-28 h-28 bg-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-indigo-200 rotate-3 group-hover:rotate-6 transition-transform">
@@ -44,43 +43,53 @@ export const Menu: React.FC<MenuProps> = ({ onStart, onOpenSettings, settings, s
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm text-left">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-              <Target className="w-3.5 h-3.5" /> Chủ đề luyện tập
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSettings(s => ({ ...s, selectedCategory: cat }))}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    settings.selectedCategory === cat
-                      ? 'bg-indigo-600 text-white shadow-md'
-                      : 'bg-slate-50 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {cat === 'All' ? 'Tất cả' : cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm text-left flex flex-col justify-between min-h-[120px]">
-            <div>
+        {hasCustomData ? (
+           <div className="bg-green-50 p-5 rounded-3xl border border-green-100 shadow-sm text-center">
+             <h3 className="text-xs font-bold text-green-600 uppercase tracking-widest mb-2 flex items-center justify-center gap-2">
+               <Database className="w-3.5 h-3.5" /> Dữ liệu tuỳ chỉnh đang bật
+             </h3>
+             <p className="text-green-800 font-bold">Bạn đang học theo danh sách đã nhập.</p>
+             <button onClick={onOpenSettings} className="mt-3 text-xs text-green-600 underline hover:text-green-800">Quản lý / Xoá</button>
+           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm text-left">
               <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                <Zap className="w-3.5 h-3.5" /> Thống kê hôm nay
+                <Target className="w-3.5 h-3.5" /> Chủ đề luyện tập
               </h3>
-              <div className="flex items-end gap-2 mb-2">
-                <span className="text-3xl font-black text-slate-800">0</span>
-                <span className="text-slate-400 font-bold text-[10px] mb-1.5 uppercase">Câu trả lời đúng</span>
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSettings(s => ({ ...s, selectedCategory: cat }))}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      settings.selectedCategory === cat
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {cat === 'All' ? 'Tất cả' : cat}
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-               <div className="h-full bg-indigo-400 w-[0%] transition-all duration-1000"></div>
+
+            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm text-left flex flex-col justify-between min-h-[120px]">
+              <div>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5" /> Thống kê hôm nay
+                </h3>
+                <div className="flex items-end gap-2 mb-2">
+                  <span className="text-3xl font-black text-slate-800">0</span>
+                  <span className="text-slate-400 font-bold text-[10px] mb-1.5 uppercase">Câu trả lời đúng</span>
+                </div>
+              </div>
+              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                 <div className="h-full bg-indigo-400 w-[0%] transition-all duration-1000"></div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <button 
           onClick={onStart}
@@ -93,7 +102,9 @@ export const Menu: React.FC<MenuProps> = ({ onStart, onOpenSettings, settings, s
               </div>
               <div className="text-left">
                 <span className="block font-black text-2xl md:text-3xl text-slate-900 group-hover:text-indigo-600 transition-colors">Tập Ngay</span>
-                <span className="text-slate-400 font-medium text-sm md:text-base">Luyện phản xạ nói</span>
+                <span className="text-slate-400 font-medium text-sm md:text-base">
+                  {hasCustomData ? 'Luyện tập bài đã nhập' : 'Luyện phản xạ nói'}
+                </span>
               </div>
             </div>
             <History className="w-6 h-6 text-slate-200 group-hover:text-indigo-200 transition-colors" />
