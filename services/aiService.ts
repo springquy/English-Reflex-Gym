@@ -2,20 +2,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Question } from "../types";
 
-// Initialize safely. If no key is provided, ai instance will be null.
+// Khởi tạo client an toàn. Nếu không có Key, biến ai sẽ là null.
 const apiKey = process.env.API_KEY;
-const ai = (apiKey && apiKey.length > 0) ? new GoogleGenAI({ apiKey }) : null;
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export const evaluateAnswerWithAI = async (userInput: string, question: Question): Promise<{ isCorrect: boolean, feedback: string }> => {
-  // If AI is not configured, fallback to a safe default response
+  // 1. Kiểm tra nếu không có API Key (Chế độ Offline)
   if (!ai) {
-    console.warn("AI Key missing. Skipping AI evaluation.");
+    console.warn("AI Service: Missing API Key. Returning offline fallback.");
     return { 
       isCorrect: false, 
-      feedback: "Chưa cấu hình API Key, sử dụng kiểm tra cơ bản." 
+      feedback: "Chưa chính xác. (Nhập API Key để AI phân tích lỗi sai cụ thể hơn)." 
     };
   }
 
+  // 2. Nếu có Key thì gọi AI như bình thường
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -49,7 +50,7 @@ export const evaluateAnswerWithAI = async (userInput: string, question: Question
     return JSON.parse(text);
   } catch (error) {
     console.error("AI Evaluation failed:", error);
-    // Fallback if AI fails
-    return { isCorrect: false, feedback: "AI không phản hồi, đang sử dụng kiểm tra tự động." };
+    // Fallback nếu gọi AI bị lỗi mạng hoặc quota
+    return { isCorrect: false, feedback: "AI đang bận, vui lòng thử lại hoặc kiểm tra kết nối mạng." };
   }
 };

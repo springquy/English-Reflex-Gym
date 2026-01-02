@@ -37,7 +37,7 @@ export const Menu: React.FC<MenuProps> = ({ onStart, onOpenSettings, settings, s
               English Reflex <span className="text-indigo-600">Gym</span>
             </h1>
             <p className="text-slate-500 text-lg font-medium max-w-sm mx-auto">
-              Luyện phản xạ nói tự nhiên, không cần suy nghĩ quá lâu.
+              Luyện tập phản xạ nói.
             </p>
           </div>
         </div>
@@ -90,8 +90,8 @@ export const Menu: React.FC<MenuProps> = ({ onStart, onOpenSettings, settings, s
                 <Play className="w-10 h-10 text-indigo-600 fill-indigo-600 ml-1" />
               </div>
               <div className="text-left">
-                <span className="block font-black text-3xl text-slate-900 group-hover:text-indigo-600 transition-colors">Vào Gym Tập</span>
-                <span className="text-slate-400 font-medium text-lg">Phản xạ nhanh • Mic tự động</span>
+                <span className="block font-black text-3xl text-slate-900 group-hover:text-indigo-600 transition-colors">Bắt đầu</span>
+                <span className="text-slate-400 font-medium text-lg">Luyện phản xạ nói</span>
               </div>
             </div>
             <History className="w-8 h-8 text-slate-200 group-hover:text-indigo-200 transition-colors" />

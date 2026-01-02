@@ -23,10 +23,10 @@ export const checkAnswerLocally = (userInput: string, questionData: Question): b
   const isMatch = allAnswers.some(ans => normalizeText(ans) === normalizedInput);
   if (isMatch) return true;
 
-  // Word overlap matching (Fuzzy)
+  // Word overlap matching (Fuzzy) but STRICTER
   const mainAnswerNorm = normalizeText(questionData.main_answer);
-  const inputWords = normalizedInput.split(' ');
-  const targetWords = mainAnswerNorm.split(' ');
+  const inputWords = normalizedInput.split(' ').filter(w => w.length > 0);
+  const targetWords = mainAnswerNorm.split(' ').filter(w => w.length > 0);
 
   if (targetWords.length === 0) return false;
 
@@ -34,7 +34,14 @@ export const checkAnswerLocally = (userInput: string, questionData: Question): b
     return targetWords.includes(word) ? count + 1 : count;
   }, 0);
 
-  // If sentence is short (<= 3 words), require high accuracy. If long, allow some leeway.
-  const threshold = targetWords.length <= 3 ? 0.99 : 0.75;
-  return matchedCount / targetWords.length >= threshold;
+  // Use the maximum length to penalize adding extra incorrect words
+  // e.g., Target: "Check please" (2) vs Input: "Check my pill please" (4)
+  // Matched: 2. Max Length: 4. Accuracy: 0.5. Result: Fail.
+  const maxLength = Math.max(inputWords.length, targetWords.length);
+  const accuracy = matchedCount / maxLength;
+
+  // If sentence is short (<= 3 words), require very high accuracy (0.9). 
+  // If long, allow slightly more leeway (0.8) but still strict.
+  const threshold = targetWords.length <= 3 ? 0.9 : 0.8;
+  return accuracy >= threshold;
 };

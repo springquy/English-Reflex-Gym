@@ -1,2 +1,2 @@
-
-/// <reference types="vite/client" />
+// Reference removed to avoid "Cannot find type definition file" error.
+export {};
