@@ -45,7 +45,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
            {/* Section: API Key */}
            <section className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50">
             <label className="flex items-center justify-between text-[11px] font-black text-indigo-900/60 uppercase tracking-[0.15em] mb-2">
-              <span className="flex items-center gap-1.5"><Key className="w-3.5 h-3.5" /> Gemini API Key (Miễn phí)</span>
+              <span className="flex items-center gap-1.5"><Key className="w-3.5 h-3.5" /> Gemini API Key</span>
               <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-600 hover:underline cursor-pointer normal-case font-bold">
                  Lấy key tại đây <ExternalLink className="w-3 h-3" />
               </a>
@@ -66,9 +66,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            <p className="mt-2 text-[10px] text-slate-400 font-medium leading-relaxed">
-              Key được lưu trên trình duyệt của bạn. Để trống để dùng key mặc định (nếu có).
-            </p>
           </section>
 
           {/* Section: Số lượng câu hỏi với Slider */}
