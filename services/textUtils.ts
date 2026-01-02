@@ -15,33 +15,79 @@ export const normalizeText = (text: string): string => {
   return expandedWords.join(" ").trim();
 };
 
+// Calculate Levenshtein distance
+const levenshteinDistance = (a: string, b: string): number => {
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; }
+  for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; }
+
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) {
+        matrix[i][j] = matrix[i - 1][j - 1];
+      } else {
+        matrix[i][j] = Math.min(
+          matrix[i - 1][j - 1] + 1,
+          Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+        );
+      }
+    }
+  }
+  return matrix[b.length][a.length];
+};
+
+// Check if two words are similar enough
+const isWordMatch = (source: string, target: string): boolean => {
+  if (source === target) return true;
+  
+  const len = Math.max(source.length, target.length);
+  const dist = levenshteinDistance(source, target);
+  
+  // Very short words (<= 3 chars) must match exactly (e.g. 'is' vs 'in')
+  if (target.length <= 3) return dist === 0;
+  
+  // Short words (4-5 chars) allow max 1 error (e.g. 'cook' vs 'could' -> dist 2 -> Fail)
+  if (target.length <= 5) return dist <= 1;
+
+  // Longer words allow slightly more flexibility (for suffixes like -ly, -ed)
+  // e.g. 'slower' vs 'slowly'
+  const similarity = 1 - (dist / len);
+  return similarity >= 0.7; 
+};
+
 export const checkAnswerLocally = (userInput: string, questionData: Question): boolean => {
   const normalizedInput = normalizeText(userInput);
+  const inputWords = normalizedInput.split(/\s+/).filter(w => w.length > 0);
+  
   const allAnswers = [questionData.main_answer, ...questionData.variations];
   
-  // Exact Match (normalized)
-  const isMatch = allAnswers.some(ans => normalizeText(ans) === normalizedInput);
-  if (isMatch) return true;
+  for (const answer of allAnswers) {
+    const normalizedTarget = normalizeText(answer);
+    const targetWords = normalizedTarget.split(/\s+/).filter(w => w.length > 0);
 
-  // Word overlap matching (Fuzzy) but STRICTER
-  const mainAnswerNorm = normalizeText(questionData.main_answer);
-  const inputWords = normalizedInput.split(' ').filter(w => w.length > 0);
-  const targetWords = mainAnswerNorm.split(' ').filter(w => w.length > 0);
+    if (targetWords.length === 0) continue;
 
-  if (targetWords.length === 0) return false;
+    let matchedCount = 0;
+    // Clone input words to mark them as consumed so we don't match one input word to multiple target words
+    const availableInputWords = [...inputWords];
 
-  const matchedCount = inputWords.reduce((count, word) => {
-    return targetWords.includes(word) ? count + 1 : count;
-  }, 0);
+    for (const tWord of targetWords) {
+      const matchIndex = availableInputWords.findIndex(iWord => isWordMatch(iWord, tWord));
+      if (matchIndex !== -1) {
+        matchedCount++;
+        availableInputWords.splice(matchIndex, 1); // Remove consumed word
+      }
+    }
 
-  // Use the maximum length to penalize adding extra incorrect words
-  // e.g., Target: "Check please" (2) vs Input: "Check my pill please" (4)
-  // Matched: 2. Max Length: 4. Accuracy: 0.5. Result: Fail.
-  const maxLength = Math.max(inputWords.length, targetWords.length);
-  const accuracy = matchedCount / maxLength;
+    // Calculate coverage percentage
+    // How many important words from the target did the user say?
+    const coverage = matchedCount / targetWords.length;
 
-  // If sentence is short (<= 3 words), require very high accuracy (0.9). 
-  // If long, allow slightly more leeway (0.8) but still strict.
-  const threshold = targetWords.length <= 3 ? 0.9 : 0.8;
-  return accuracy >= threshold;
+    // Strict threshold: Must match at least 80% of the words in the target sentence
+    if (coverage >= 0.8) {
+      return true;
+    }
+  }
+
+  return false;
 };

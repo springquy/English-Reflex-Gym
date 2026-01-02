@@ -72,10 +72,12 @@ export const Result: React.FC<ResultProps> = ({ score, total, onRestart, onHome 
            <div className="space-y-3">
              <button 
                 onClick={onRestart}
-                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-lg active:scale-[0.98]"
+                className="group w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-lg active:scale-[0.98]"
                 title="Phím tắt: R"
               >
-                <RefreshCw className="w-5 h-5" /> Thử lại (R)
+                <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" /> 
+                <span>Thử lại</span>
+                <span className="ml-1 bg-slate-700 text-slate-300 px-2 py-0.5 rounded-lg border-b-2 border-slate-950 text-sm font-bold shadow-sm">R</span>
               </button>
 
               <button 
