@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Volume2, Zap, HelpCircle, CheckCircle, XCircle, ArrowRight, BookOpen, Loader2, MicOff, Mic } from 'lucide-react';
+import { X, Volume2, Zap, HelpCircle, CheckCircle, XCircle, ArrowRight, BookOpen, Loader2, MicOff, Mic, Tag, BarChart, Sparkles } from 'lucide-react';
 import { GameSettings, GameState, Feedback } from '../types';
 import { MOCK_DATA } from '../constants';
 import { checkAnswerLocally } from '../services/textUtils';
@@ -39,9 +39,7 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
   const isComponentMounted = useRef(true);
   const isProcessingRef = useRef(false);
   
-  // Ref để lưu trữ toàn bộ văn bản đã chốt (Final) trong phiên ghi âm hiện tại
   const sessionFinalTranscriptRef = useRef(''); 
-  // Ref để lưu trữ văn bản hiển thị mới nhất (bao gồm cả interim) để đảm bảo không mất chữ khi thả phím
   const latestTranscriptRef = useRef('');
 
   const currentQ = questions[qIndex];
@@ -53,6 +51,7 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
     isProcessingRef.current = true;
     setTranscript(textToProcess);
 
+    // BƯỚC 1: KIỂM TRA LOCAL (MIỄN PHÍ & NHANH)
     const isCorrectLocally = checkAnswerLocally(textToProcess, currentQ);
     
     if (isCorrectLocally) {
@@ -60,8 +59,9 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
       setFeedback({ isCorrect: true, msg: "Chính xác! Phát âm rất tốt." });
       setGameState(GameState.REVIEWING);
     } else {
-      setIsAIEvaluating(true);
+      // BƯỚC 2: NẾU SAI LOCAL, GỌI AI ĐỂ CỨU CÁNH (XỬ LÝ ĐỒNG NGHĨA)
       setGameState(GameState.REVIEWING);
+      setIsAIEvaluating(true); // Bật trạng thái loading AI
       
       const aiResult = await evaluateAnswerWithAI(textToProcess, currentQ);
       
@@ -88,7 +88,6 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
     if (!recognitionRef.current) return;
 
     try {
-      // Reset buffer cho phiên mới
       sessionFinalTranscriptRef.current = '';
       latestTranscriptRef.current = ''; 
       setTranscript('');
@@ -113,7 +112,7 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
     
     if (qIndex < questions.length - 1) {
       setQIndex(prev => prev + 1);
-      setTimeLeft(100); // Reset thời gian cho câu mới
+      setTimeLeft(100); 
       setGameState(GameState.THINKING);
     } else {
       onEnd(score, questions.length);
@@ -124,7 +123,7 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
     setShowHint(prev => {
       if (prev === 0) return 1;
       if (prev === 1) return 2;
-      return 1; // Loop back to structure
+      return 1;
     });
   }, []);
 
@@ -182,27 +181,16 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
-
-      if (e.code === 'Escape') {
-        onExit();
-        return;
-      }
-
+      if (e.code === 'Escape') { onExit(); return; }
       if (e.code === 'Tab') {
         e.preventDefault();
-        if (gameState === GameState.REVIEWING && !isAIEvaluating) {
-           nextQuestion();
-        }
+        if (gameState === GameState.REVIEWING && !isAIEvaluating) { nextQuestion(); }
         return;
       }
-
       if (e.code === 'KeyQ') {
-        if (gameState !== GameState.REVIEWING) {
-          toggleHints();
-        }
+        if (gameState !== GameState.REVIEWING) { toggleHints(); }
         return;
       }
-
       if (e.code === 'Space') {
         if ((gameState === GameState.THINKING || gameState === GameState.LISTENING) && !isProcessingRef.current) {
            e.preventDefault();
@@ -214,11 +202,9 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.code !== 'Space') return;
-
       if (gameState === GameState.LISTENING) {
         setIsSpacePressed(false);
         stopListening();
-        
         setTimeout(() => {
             const fullText = latestTranscriptRef.current.trim();
             if (fullText.length > 0) {
@@ -230,12 +216,10 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
       }
     };
 
-    // Fix: Force stop recording if window loses focus (Alt-Tab, click outside, alert)
     const handleBlur = () => {
       if (gameState === GameState.LISTENING) {
         setIsSpacePressed(false);
         stopListening();
-        // Fallback to thinking state if interrupted
         setGameState(GameState.THINKING);
       }
     };
@@ -291,7 +275,6 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
             </div>
           </div>
         </div>
-
         <div className="flex items-center gap-3">
           <div className="bg-slate-900 text-white px-4 py-1.5 rounded-xl font-black text-sm shadow-xl shadow-slate-200">
             {score} / {questions.length}
@@ -309,15 +292,25 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
         <div className="w-full max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-12 items-start md:items-center h-full md:h-auto">
           
           <div className="md:col-span-7 flex flex-col gap-6 md:gap-10">
-            <div className="space-y-4 md:space-y-6 text-center md:text-left animate-in fade-in slide-in-from-left-4 duration-500">
-              <span className="inline-flex items-center px-3 py-1 bg-white border border-slate-200 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-sm">
-                <span className={`w-1.5 h-1.5 rounded-full mr-2 ${currentQ.level === 'Easy' ? 'bg-green-400' : currentQ.level === 'Medium' ? 'bg-orange-400' : 'bg-red-500'}`}></span>
-                {currentQ.level} • {currentQ.category}
-              </span>
-              <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.15] tracking-tight">
-                {currentQ.vietnamese}
-              </h2>
+            <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-4 duration-500">
+              <div className={`
+                 px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shadow-sm
+                 ${currentQ.level === 'Easy' ? 'bg-green-50 border-green-100 text-green-700' : 
+                   currentQ.level === 'Medium' ? 'bg-amber-50 border-amber-100 text-amber-700' : 
+                   'bg-rose-50 border-rose-100 text-rose-700'}
+              `}>
+                 <BarChart className="w-3.5 h-3.5" />
+                 <span className="text-[10px] font-black uppercase tracking-wider">{currentQ.level}</span>
+              </div>
+              <div className="px-3 py-1.5 rounded-lg border border-slate-100 bg-white text-slate-500 flex items-center gap-1.5 shadow-sm">
+                 <Tag className="w-3.5 h-3.5" />
+                 <span className="text-[10px] font-black uppercase tracking-wider">{currentQ.category}</span>
+              </div>
             </div>
+
+            <h2 className="text-3xl md:text-5xl lg:text-6xl font-black text-slate-900 leading-[1.15] tracking-tight animate-in fade-in slide-in-from-left-4 duration-500 delay-75">
+               {currentQ.vietnamese}
+            </h2>
 
             <div className={`
               min-h-[120px] md:min-h-[160px] w-full p-6 md:p-8 rounded-[2rem] flex flex-col items-center justify-center relative transition-all duration-200 border-2
@@ -410,8 +403,9 @@ export const Game: React.FC<GameProps> = ({ settings, onEnd, onExit }) => {
                       {feedback.msg}
                     </h3>
                     {isAIEvaluating && (
-                       <div className="mt-2 flex items-center gap-2 text-indigo-500 font-bold text-xs bg-indigo-50 px-2 py-1 rounded-lg w-fit">
-                          <Loader2 className="w-3 h-3 animate-spin" /> AI checking...
+                       <div className="mt-2 flex items-center gap-2 text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl w-fit animate-pulse">
+                          <Sparkles className="w-3.5 h-3.5" /> 
+                          <span className="text-xs font-bold">AI đang kiểm tra kỹ hơn...</span>
                        </div>
                     )}
                   </div>

@@ -49,10 +49,9 @@ const isWordMatch = (source: string, target: string): boolean => {
   // Short words (4-5 chars) allow max 1 error (e.g. 'cook' vs 'could' -> dist 2 -> Fail)
   if (target.length <= 5) return dist <= 1;
 
-  // Longer words allow slightly more flexibility (for suffixes like -ly, -ed)
-  // e.g. 'slower' vs 'slowly'
+  // Longer words allow slightly more flexibility but tighter than before (0.8 instead of 0.7)
   const similarity = 1 - (dist / len);
-  return similarity >= 0.7; 
+  return similarity >= 0.8; 
 };
 
 export const checkAnswerLocally = (userInput: string, questionData: Question): boolean => {
@@ -83,8 +82,10 @@ export const checkAnswerLocally = (userInput: string, questionData: Question): b
     // How many important words from the target did the user say?
     const coverage = matchedCount / targetWords.length;
 
-    // Strict threshold: Must match at least 80% of the words in the target sentence
-    if (coverage >= 0.8) {
+    // Strict threshold: Must match at least 95% of the words in the target sentence
+    // This forces almost perfect matches locally. Any missing adjectives/nouns will fail 
+    // this check and be sent to AI for a smarter evaluation.
+    if (coverage >= 0.9) {
       return true;
     }
   }
