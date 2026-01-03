@@ -25,27 +25,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-      {/* Increased max-width to max-w-xl for a wider look */}
-      <div className="bg-white rounded-[2.5rem] p-8 w-full max-w-xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto no-scrollbar flex flex-col">
-        <div className="flex justify-between items-center mb-6 shrink-0">
-          <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-            <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-              <SettingsIcon className="w-6 h-6 text-slate-500" />
+      {/* Compact layout: max-w-lg, reduced padding, tight spacing */}
+      <div className="bg-white rounded-[2rem] p-6 w-full max-w-lg shadow-[0_20px_50px_rgba(0,0,0,0.1)] animate-in zoom-in-95 duration-200 max-h-[95vh] overflow-y-auto no-scrollbar flex flex-col">
+        <div className="flex justify-between items-center mb-5 shrink-0">
+          <h2 className="text-xl font-black text-slate-800 flex items-center gap-2.5">
+            <div className="p-2 bg-slate-50 rounded-xl border border-slate-100">
+              <SettingsIcon className="w-5 h-5 text-slate-500" />
             </div>
             Cài đặt
           </h2>
-          <button onClick={onClose} className="p-2.5 hover:bg-slate-50 rounded-full transition-colors">
-            <X className="w-7 h-7 text-slate-400" />
+          <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
+            <X className="w-6 h-6 text-slate-400" />
           </button>
         </div>
 
-        <div className="space-y-8 flex-1">
+        <div className="space-y-5 flex-1">
            {/* Section: API Key */}
-           <section className="bg-indigo-50/50 p-5 rounded-3xl border border-indigo-100/50">
-            <label className="flex items-center justify-between text-xs font-black text-indigo-900/60 uppercase tracking-[0.15em] mb-2.5">
-              <span className="flex items-center gap-2"><Key className="w-4 h-4" /> Gemini API Key</span>
-              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-indigo-600 hover:underline cursor-pointer normal-case font-bold text-sm">
-                 Lấy key <ExternalLink className="w-3.5 h-3.5" />
+           <section className="bg-indigo-50/50 p-4 rounded-2xl border border-indigo-100/50">
+            <label className="flex items-center justify-between text-[10px] font-black text-indigo-900/60 uppercase tracking-[0.15em] mb-2">
+              <span className="flex items-center gap-1.5"><Key className="w-3.5 h-3.5" /> Gemini API Key</span>
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="flex items-center gap-1 text-indigo-600 hover:underline cursor-pointer normal-case font-bold text-xs">
+                 Lấy key <ExternalLink className="w-3 h-3" />
               </a>
             </label>
             <div className="relative">
@@ -54,34 +54,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
                 value={tempSettings.apiKey || ''}
                 onChange={(e) => setTempSettings(s => ({ ...s, apiKey: e.target.value }))}
                 placeholder="Dán API Key vào đây..."
-                className="w-full bg-white border border-indigo-100 text-slate-800 text-base font-medium rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-300 pr-10"
+                className="w-full bg-white border border-indigo-100 text-slate-800 text-sm font-medium rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-300 pr-9"
               />
               <button 
                 type="button"
                 onClick={() => setShowKey(!showKey)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600 transition-colors"
               >
-                {showKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </section>
 
           {/* Section: Mục tiêu hàng ngày */}
           <section>
-            <div className="flex justify-between items-end mb-4">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-2">
-                <Target className="w-4 h-4" /> MỤC TIÊU HÀNG NGÀY
+            <div className="flex justify-between items-end mb-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5" /> MỤC TIÊU HÀNG NGÀY
               </label>
-              <span className="text-indigo-600 font-black text-lg">{tempSettings.dailyGoal || 20} câu</span>
+              <span className="text-indigo-600 font-black text-base">{tempSettings.dailyGoal || 20} câu</span>
             </div>
-            <div className="relative pt-2">
+            <div className="relative pt-1">
               <input 
                 type="range" min="10" max="100" step="5"
                 value={tempSettings.dailyGoal || 20}
                 onChange={(e) => setTempSettings(s => ({ ...s, dailyGoal: parseInt(e.target.value) }))}
-                className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
               />
-              <div className="flex justify-between mt-2.5 text-[10px] font-bold text-slate-300">
+              <div className="flex justify-between mt-1.5 text-[9px] font-bold text-slate-300">
                 <span className="w-6 text-center">10</span>
                 <span className="w-6 text-center">50</span>
                 <span className="w-6 text-center">100</span>
@@ -91,20 +91,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
 
           {/* Section: Số lượng câu hỏi */}
           <section>
-            <div className="flex justify-between items-end mb-4">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-[0.15em]">
+            <div className="flex justify-between items-end mb-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">
                 Số câu / Lượt
               </label>
-              <span className="text-indigo-600 font-black text-lg">{tempSettings.questionCount} câu</span>
+              <span className="text-indigo-600 font-black text-base">{tempSettings.questionCount} câu</span>
             </div>
-            <div className="relative pt-2">
+            <div className="relative pt-1">
               <input 
                 type="range" min="5" max="20" step="5"
                 value={tempSettings.questionCount}
                 onChange={(e) => setTempSettings(s => ({ ...s, questionCount: parseInt(e.target.value) }))}
-                className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
               />
-              <div className="flex justify-between mt-2.5 text-[10px] font-bold text-slate-300">
+              <div className="flex justify-between mt-1.5 text-[9px] font-bold text-slate-300">
                 <span className="w-6 text-center">5</span><span className="w-6 text-center">10</span>
                 <span className="w-6 text-center">15</span><span className="w-6 text-center">20</span>
               </div>
@@ -113,26 +113,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
 
           {/* Section: Thời gian */}
           <section>
-            <label className="block text-xs font-black text-slate-400 uppercase tracking-[0.15em] mb-4">THỜI GIAN TRẢ LỜI</label>
-            <div className="grid grid-cols-4 gap-3">
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-3">THỜI GIAN TRẢ LỜI</label>
+            <div className="grid grid-cols-4 gap-2">
               {[5, 10, 15, 0].map(time => (
                 <button
                   key={time}
                   type="button"
                   onClick={() => setTempSettings(s => ({ ...s, timePerQuestion: time }))}
-                  className={`py-4 rounded-2xl text-sm font-black transition-all border-2 ${
+                  className={`py-2.5 rounded-xl text-xs font-black transition-all border-2 ${
                     tempSettings.timePerQuestion === time
-                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-100' 
+                    ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-100' 
                     : 'bg-slate-50 border-transparent text-slate-500 hover:bg-slate-100'
                   }`}
                 >
-                  {time === 0 ? <Infinity className="w-5 h-5 mx-auto" /> : `${time}s`}
+                  {time === 0 ? <Infinity className="w-4 h-4 mx-auto" /> : `${time}s`}
                 </button>
               ))}
             </div>
-            <div className="mt-4 flex items-center gap-2.5 text-slate-400">
-              <Clock className="w-4 h-4 shrink-0" />
-              <p className="text-xs font-medium leading-tight">
+            <div className="mt-3 flex items-center gap-2 text-slate-400">
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              <p className="text-[10px] font-medium leading-tight">
                 {getTimeModeDescription(tempSettings.timePerQuestion)}
               </p>
             </div>
@@ -144,9 +144,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, 
             onSave(tempSettings); 
             onClose();
           }}
-          className="w-full mt-8 py-4 bg-[#0f172a] text-white rounded-2xl font-bold text-lg hover:bg-slate-800 transition-all shadow-xl flex items-center justify-center gap-3 active:scale-95 shrink-0"
+          className="w-full mt-6 py-3.5 bg-[#0f172a] text-white rounded-xl font-bold text-base hover:bg-slate-800 transition-all shadow-lg flex items-center justify-center gap-2.5 active:scale-95 shrink-0"
         >
-          <Save className="w-5 h-5" /> Lưu Cài đặt
+          <Save className="w-4 h-4" /> Lưu Cài đặt
         </button>
       </div>
     </div>
