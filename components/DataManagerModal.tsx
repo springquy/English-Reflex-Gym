@@ -90,30 +90,30 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <div className="bg-white rounded-[2.5rem] w-full max-w-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] animate-in zoom-in-95 duration-200 h-[85vh] flex flex-col overflow-hidden">
+      <div className={`bg-white rounded-[2rem] w-full max-w-3xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] animate-in zoom-in-95 duration-200 flex flex-col overflow-hidden ${view === 'add' ? 'h-auto max-h-[95vh]' : 'h-[85vh]'}`}>
         
         {/* Header */}
-        <div className="px-10 py-8 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
+        <div className={`${view === 'add' ? 'px-6 py-4' : 'px-10 py-8'} border-b border-slate-100 flex justify-between items-center bg-white shrink-0 transition-all`}>
           <div className="flex items-center gap-4">
              {view === 'add' && (
-                <button onClick={() => setView('list')} className="p-2.5 hover:bg-slate-50 rounded-full mr-2">
-                   <ArrowLeft className="w-6 h-6 text-slate-500" />
+                <button onClick={() => setView('list')} className="p-2 hover:bg-slate-50 rounded-full mr-1">
+                   <ArrowLeft className="w-5 h-5 text-slate-500" />
                 </button>
              )}
-             <div className="p-3 bg-green-50 rounded-xl border border-green-100">
-               <FolderPlus className="w-7 h-7 text-green-600" />
+             <div className="p-2.5 bg-green-50 rounded-xl border border-green-100">
+               <FolderPlus className="w-6 h-6 text-green-600" />
              </div>
-             <h2 className="text-2xl font-black text-slate-800">
-                {view === 'list' ? 'Quản lý kho dữ liệu' : 'Thêm bộ bài mới'}
+             <h2 className="text-xl md:text-2xl font-black text-slate-800">
+                {view === 'list' ? 'Quản lý kho dữ liệu' : 'Thêm bộ dữ liệu mới'}
              </h2>
           </div>
-          <button onClick={onClose} className="p-2.5 hover:bg-slate-50 rounded-full transition-colors">
-            <X className="w-7 h-7 text-slate-400" />
+          <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
+            <X className="w-6 h-6 text-slate-400" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-10">
+        <div className={`flex-1 overflow-y-auto ${view === 'add' ? 'p-6' : 'p-10'}`}>
            
            {view === 'list' ? (
               <div className="space-y-6">
@@ -121,7 +121,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                     onClick={() => setView('add')}
                     className="w-full py-6 border-3 border-dashed border-green-200 bg-green-50/30 hover:bg-green-50 text-green-700 rounded-3xl font-bold text-lg flex items-center justify-center gap-3 transition-all"
                  >
-                    <Plus className="w-6 h-6" /> Thêm bộ dữ liệu mới (Import JSON)
+                    <Plus className="w-6 h-6" /> Thêm bộ dữ liệu mới
                  </button>
 
                  <div className="space-y-4 mt-8">
@@ -147,53 +147,53 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                  </div>
               </div>
            ) : (
-              <div className="space-y-8 animate-in slide-in-from-right-8">
+              <div className="space-y-4 animate-in slide-in-from-right-8 h-full flex flex-col">
                   {/* Step 1 */}
-                  <div className="space-y-3">
-                     <label className="text-sm font-black text-slate-400 uppercase tracking-widest">1. Tên bộ bài</label>
+                  <div className="space-y-2">
+                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest">1. TÊN BỘ DỮ LIỆU</label>
                      <input 
                         type="text" 
                         value={deckName}
                         onChange={e => setDeckName(e.target.value)}
-                        placeholder="Ví dụ: Luyện Speaking Part 1, Từ vựng Du lịch..."
-                        className="w-full p-5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-800 text-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                        placeholder="Ví dụ: Gia đình, Du lịch..."
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-base focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                      />
                   </div>
 
                   {/* Step 2 */}
-                  <div className="space-y-4">
+                  <div className="space-y-2">
                      <div className="flex justify-between items-end">
-                        <label className="text-sm font-black text-slate-400 uppercase tracking-widest">2. Tạo JSON bằng AI</label>
+                        <label className="text-xs font-black text-slate-400 uppercase tracking-widest">2. Tạo JSON bằng AI</label>
                         <button 
                            onClick={handleCopyPrompt}
-                           className="text-xs font-bold text-green-600 bg-green-50 px-3 py-1.5 rounded-xl flex items-center gap-2 hover:bg-green-100 transition-colors"
+                           className="text-[10px] font-bold text-green-600 bg-green-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-green-100 transition-colors"
                         >
-                           {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />} {copied ? "Đã copy" : "Copy Prompt Mẫu"}
+                           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />} {copied ? "Đã copy" : "Copy Prompt Mẫu"}
                         </button>
                      </div>
-                     <p className="text-sm text-slate-500 bg-slate-50 p-4 rounded-2xl border border-slate-100 leading-relaxed">
+                     <p className="text-xs text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-100 leading-relaxed">
                         Copy prompt mẫu - Gửi cho Gemini kèm nội dung học - Copy JSON trả về.
                      </p>
                   </div>
 
                   {/* Step 3 */}
-                  <div className="space-y-3">
-                     <label className="text-sm font-black text-slate-400 uppercase tracking-widest">3. Dán JSON vào đây</label>
-                     <div className="relative">
+                  <div className="space-y-2 flex-1 flex flex-col min-h-0">
+                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest">3. Dán JSON vào đây</label>
+                     <div className="relative flex-1 min-h-[120px]">
                         <textarea 
                            value={jsonInput}
                            onChange={(e) => setJsonInput(e.target.value)}
                            placeholder='Dán kết quả JSON từ Gemini vào đây...'
-                           className="w-full h-48 bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 resize-none"
+                           className="w-full h-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-xs font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 resize-none"
                         />
-                        <FileJson className="absolute bottom-5 right-5 w-6 h-6 text-slate-300" />
+                        <FileJson className="absolute bottom-4 right-4 w-5 h-5 text-slate-300 pointer-events-none" />
                      </div>
-                     {importError && <p className="text-sm text-red-500 font-bold">{importError}</p>}
+                     {importError && <p className="text-xs text-red-500 font-bold mt-1">{importError}</p>}
                   </div>
 
                   <button 
                      onClick={handleImport}
-                     className="w-full py-5 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-bold text-xl shadow-lg shadow-green-100 active:scale-95 transition-all"
+                     className="w-full py-3.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-green-100 active:scale-95 transition-all shrink-0 mt-2"
                   >
                      Lưu Bộ Dữ Liệu
                   </button>
