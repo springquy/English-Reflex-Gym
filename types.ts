@@ -27,15 +27,32 @@ export interface Question {
   note?: string;
 }
 
+export interface CustomDeck {
+  id: string;
+  name: string;
+  questions: Question[];
+  createdAt: number;
+}
+
 export interface GameSettings {
   questionCount: number;
   timePerQuestion: number; // 0 for unlimited
-  selectedCategory: Category;
-  apiKey?: string; // Optional user-provided API Key
+  selectedCategory: Category; // Used for Built-in
+  selectedDeckId?: string; // Used for Custom
+  apiKey?: string;
+  dataSource: 'builtin' | 'custom';
+  dailyGoal: number; // Target number of correct answers per day
 }
 
 export interface Feedback {
   isCorrect: boolean;
   msg: string;
   aiCommentary?: string;
+}
+
+export interface DailyStats {
+  date: string; // YYYY-MM-DD
+  questionsAttempted: number;
+  correctAnswers: number;
+  apiRequestsEstimated: number; // Estimate based on AI checks
 }

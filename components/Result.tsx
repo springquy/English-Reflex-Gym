@@ -44,47 +44,46 @@ export const Result: React.FC<ResultProps> = ({ score, total, onRestart, onHome 
 
   return (
     <div className="flex items-center justify-center min-h-screen p-6 bg-slate-50 animate-in zoom-in duration-500">
-      {/* Card Container - Horizontal on Desktop */}
-      <div className="max-w-4xl w-full bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200 overflow-hidden flex flex-col md:flex-row">
+      <div className="max-w-5xl w-full bg-white rounded-[3rem] shadow-2xl shadow-slate-200 overflow-hidden flex flex-col md:flex-row">
         
         {/* Left Side: Visuals */}
-        <div className={`md:w-1/2 p-10 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50`}>
-           <div className={`absolute top-0 left-0 w-full h-2 bg-gradient-to-r ${bgGradient}`}></div>
+        <div className={`md:w-1/2 p-12 flex flex-col items-center justify-center text-center relative overflow-hidden bg-slate-50`}>
+           <div className={`absolute top-0 left-0 w-full h-3 bg-gradient-to-r ${bgGradient}`}></div>
            
-           <div className={`w-32 h-32 ${iconBg} rounded-full flex items-center justify-center mb-6 shadow-inner`}>
-              <Award className={`w-16 h-16 ${colorClass}`} />
+           <div className={`w-40 h-40 ${iconBg} rounded-full flex items-center justify-center mb-8 shadow-inner`}>
+              <Award className={`w-20 h-20 ${colorClass}`} />
            </div>
 
-           <h2 className="text-3xl font-black text-slate-900 mb-2">{title}</h2>
-           <p className="text-slate-500 font-medium px-4">{message}</p>
+           <h2 className="text-4xl font-black text-slate-900 mb-3">{title}</h2>
+           <p className="text-slate-500 font-medium px-4 text-xl">{message}</p>
         </div>
 
         {/* Right Side: Stats & Actions */}
-        <div className="md:w-1/2 p-10 bg-white flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-100">
-           <div className="text-center mb-8">
-              <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">KẾT QUẢ CỦA BẠN</span>
-              <div className="flex items-baseline justify-center mt-2">
-                 <span className={`text-7xl font-black ${colorClass}`}>{score}</span>
-                 <span className="text-3xl text-slate-300 font-bold ml-1">/{total}</span>
+        <div className="md:w-1/2 p-12 bg-white flex flex-col justify-center border-t md:border-t-0 md:border-l border-slate-100">
+           <div className="text-center mb-10">
+              <span className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">KẾT QUẢ CỦA BẠN</span>
+              <div className="flex items-baseline justify-center mt-3">
+                 <span className={`text-8xl font-black ${colorClass}`}>{score}</span>
+                 <span className="text-4xl text-slate-300 font-bold ml-1">/{total}</span>
               </div>
            </div>
 
-           <div className="space-y-3">
+           <div className="space-y-4">
              <button 
                 onClick={onRestart}
-                className="group w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-slate-800 transition-all shadow-lg active:scale-[0.98]"
+                className="group w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xl flex items-center justify-center gap-4 hover:bg-slate-800 transition-all shadow-lg active:scale-[0.98]"
                 title="Phím tắt: R"
               >
-                <RefreshCw className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" /> 
+                <RefreshCw className="w-6 h-6 group-hover:rotate-180 transition-transform duration-500" /> 
                 <span>Thử lại</span>
-                <span className="ml-1 bg-slate-700 text-slate-300 px-2 py-0.5 rounded-lg border-b-2 border-slate-950 text-sm font-bold shadow-sm">R</span>
+                <span className="ml-2 bg-slate-700 text-slate-300 px-3 py-1 rounded-lg border-b-2 border-slate-950 text-base font-bold shadow-sm">R</span>
               </button>
 
               <button 
                 onClick={onHome}
-                className="w-full py-4 bg-white text-slate-600 border border-slate-200 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-50 transition-colors"
+                className="w-full py-5 bg-white text-slate-600 border border-slate-200 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-slate-50 transition-colors"
               >
-                <Home className="w-5 h-5" /> Home
+                <Home className="w-6 h-6" /> Home
               </button>
            </div>
         </div>
