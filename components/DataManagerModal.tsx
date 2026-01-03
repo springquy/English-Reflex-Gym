@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { X, FolderPlus, FileJson, Copy, Check, Trash2, Plus, ArrowLeft } from 'lucide-react';
+import { X, FolderPlus, FileJson, Copy, Check, Trash2, Plus, ArrowLeft, Pencil } from 'lucide-react';
 import { CustomDeck, Question } from '../types';
 
 interface DataManagerModalProps {
@@ -36,6 +36,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
   const [view, setView] = useState<'list' | 'add'>('list');
   const [jsonInput, setJsonInput] = useState('');
   const [deckName, setDeckName] = useState('');
+  const [editingDeckId, setEditingDeckId] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -45,7 +46,14 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleImport = () => {
+  const resetForm = () => {
+    setJsonInput('');
+    setDeckName('');
+    setEditingDeckId(null);
+    setImportError(null);
+  };
+
+  const handleSave = () => {
     try {
       if (!jsonInput.trim()) return;
       if (!deckName.trim()) { setImportError("Vui lòng đặt tên cho bộ dữ liệu."); return; }
@@ -64,21 +72,39 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
         note: q.note || ""
       }));
 
-      const newDeck: CustomDeck = {
-        id: crypto.randomUUID(),
-        name: deckName,
-        questions: normalizedQuestions,
-        createdAt: Date.now()
-      };
+      if (editingDeckId) {
+        // Update existing deck
+        const updatedDecks = customDecks.map(deck => 
+          deck.id === editingDeckId 
+            ? { ...deck, name: deckName, questions: normalizedQuestions } 
+            : deck
+        );
+        onSaveDecks(updatedDecks);
+      } else {
+        // Create new deck
+        const newDeck: CustomDeck = {
+          id: crypto.randomUUID(),
+          name: deckName,
+          questions: normalizedQuestions,
+          createdAt: Date.now()
+        };
+        onSaveDecks([newDeck, ...customDecks]);
+      }
 
-      onSaveDecks([newDeck, ...customDecks]);
+      resetForm();
       setView('list');
-      setJsonInput('');
-      setDeckName('');
-      setImportError(null);
     } catch (e: any) {
       setImportError("Lỗi JSON: " + e.message);
     }
+  };
+
+  const handleEdit = (deck: CustomDeck) => {
+    setDeckName(deck.name);
+    // Format JSON with indentation for easier editing
+    setJsonInput(JSON.stringify(deck.questions, null, 2));
+    setEditingDeckId(deck.id);
+    setView('add');
+    setImportError(null);
   };
 
   const handleDelete = (id: string) => {
@@ -96,7 +122,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0 transition-all">
           <div className="flex items-center gap-3">
              {view === 'add' && (
-                <button onClick={() => setView('list')} className="p-1.5 hover:bg-slate-50 rounded-full -ml-2 mr-1 transition-colors">
+                <button onClick={() => { setView('list'); resetForm(); }} className="p-1.5 hover:bg-slate-50 rounded-full -ml-2 mr-1 transition-colors">
                    <ArrowLeft className="w-5 h-5 text-slate-500" />
                 </button>
              )}
@@ -104,7 +130,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                <FolderPlus className="w-5 h-5 text-green-600" />
              </div>
              <h2 className="text-lg md:text-xl font-black text-slate-800">
-                {view === 'list' ? 'Quản lý kho dữ liệu' : 'Thêm bộ dữ liệu mới'}
+                {view === 'list' ? 'Quản lý kho dữ liệu' : (editingDeckId ? 'Chỉnh sửa bộ dữ liệu' : 'Thêm bộ dữ liệu mới')}
              </h2>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
@@ -118,7 +144,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
            {view === 'list' ? (
               <div className="space-y-4">
                  <button 
-                    onClick={() => setView('add')}
+                    onClick={() => { resetForm(); setView('add'); }}
                     className="w-full py-4 border-2 border-dashed border-green-300 bg-green-50/40 hover:bg-green-50 text-green-700 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
                  >
                     <Plus className="w-5 h-5" /> Thêm bộ dữ liệu mới
@@ -130,18 +156,27 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                        <p className="text-center text-slate-400 py-8 italic text-sm">Chưa có dữ liệu nào. Hãy thêm mới!</p>
                     )}
                     {customDecks.map(deck => (
-                       <div key={deck.id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-slate-300 transition-all">
-                          <div>
-                             <h4 className="font-bold text-slate-800 text-base mb-0.5">{deck.name}</h4>
+                       <div key={deck.id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-slate-300 transition-all group">
+                          <div className="flex-1 min-w-0 pr-4">
+                             <h4 className="font-bold text-slate-800 text-base mb-0.5 truncate">{deck.name}</h4>
                              <p className="text-[11px] text-slate-400 font-bold">{deck.questions.length} câu hỏi • {new Date(deck.createdAt).toLocaleDateString()}</p>
                           </div>
-                          <button 
-                             onClick={() => handleDelete(deck.id)}
-                             className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                             title="Xoá"
-                          >
-                             <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-1">
+                             <button 
+                                onClick={() => handleEdit(deck)}
+                                className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                title="Sửa"
+                             >
+                                <Pencil className="w-4 h-4" />
+                             </button>
+                             <button 
+                                onClick={() => handleDelete(deck.id)}
+                                className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Xoá"
+                             >
+                                <Trash2 className="w-4 h-4" />
+                             </button>
+                          </div>
                        </div>
                     ))}
                  </div>
@@ -185,6 +220,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                            onChange={(e) => setJsonInput(e.target.value)}
                            placeholder='Dán kết quả JSON từ Gemini vào đây...'
                            className="w-full h-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 resize-none leading-relaxed"
+                           spellCheck={false}
                         />
                         <FileJson className="absolute bottom-3 right-3 w-4 h-4 text-slate-300 pointer-events-none" />
                      </div>
@@ -192,10 +228,10 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                   </div>
 
                   <button 
-                     onClick={handleImport}
+                     onClick={handleSave}
                      className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-base shadow-lg shadow-green-100 active:scale-95 transition-all shrink-0 mt-1"
                   >
-                     Lưu Bộ Dữ Liệu
+                     {editingDeckId ? 'Cập nhật' : 'Lưu Bộ Dữ Liệu'}
                   </button>
               </div>
            )}
