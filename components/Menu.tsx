@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Play, Settings, Mic, FolderPlus, Library, Zap, Plus, History } from 'lucide-react';
+import React, { useRef } from 'react';
+import { Play, Settings, Mic, FolderPlus, Library, Zap, Plus, History, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CATEGORIES, MOCK_DATA } from '../constants';
 import { GameSettings, CustomDeck, DailyStats } from '../types';
 
@@ -26,12 +26,31 @@ export const Menu: React.FC<MenuProps> = ({
   const isCustom = settings.dataSource === 'custom';
   const dailyGoal = settings.dailyGoal || 20;
   const progressPercent = Math.min((dailyStats.correctAnswers / dailyGoal) * 100, 100);
+  
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const toggleDataSource = () => {
     setSettings({
         ...settings,
         dataSource: isCustom ? 'builtin' : 'custom'
     });
+  };
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      const scrollAmount = 300; // Approximate width of card + gap
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
+    if (scrollRef.current && e.deltaY !== 0) {
+      // Convert vertical scroll to horizontal scroll
+      scrollRef.current.scrollLeft += e.deltaY;
+    }
   };
 
   return (
@@ -79,77 +98,102 @@ export const Menu: React.FC<MenuProps> = ({
       {/* --- MAIN CONTENT --- */}
       <main className="flex-1 flex flex-col justify-center w-full z-10 overflow-hidden relative py-4">
         
-        <div className="w-full">
+        <div className="w-full relative group">
             <h2 className="text-center text-xs font-black text-slate-400 uppercase tracking-[0.25em] mb-6">
                Chủ đề luyện tập
             </h2>
             
-            <div className="flex overflow-x-auto gap-4 px-6 pb-8 snap-x snap-mandatory no-scrollbar items-center" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-               {/* Custom Mode: Manage Button */}
-               {isCustom && (
-                  <button 
-                     onClick={onOpenDataManager}
-                     className="snap-start shrink-0 w-40 h-52 rounded-[2rem] border-2 border-dashed border-green-300 bg-green-50/40 hover:bg-green-100 flex flex-col items-center justify-center gap-3 text-green-600 transition-all active:scale-95 group"
-                  >
-                     <div className="p-3 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform group-hover:shadow-md">
-                        <Plus className="w-6 h-6" />
-                     </div>
-                     <span className="font-bold text-sm">Quản lý</span>
-                  </button>
-               )}
+            {/* Scroll Button Left */}
+            <button 
+              onClick={() => scroll('left')}
+              className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-3 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full shadow-lg text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white hover:text-indigo-600 hidden md:block"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
 
-               {(!isCustom ? CATEGORIES : customDecks).map((item, idx) => {
-                  const isSelected = !isCustom 
-                     ? settings.selectedCategory === item 
-                     : settings.selectedDeckId === (item as CustomDeck).id;
-                  
-                  const label = !isCustom ? (item as string) : (item as CustomDeck).name;
-                  
-                  let count = 0;
-                  if (isCustom) {
-                     count = (item as CustomDeck).questions.length;
-                  } else {
-                     const cat = item as string;
-                     count = cat === 'All' ? MOCK_DATA.length : MOCK_DATA.filter(q => q.category === cat).length;
-                  }
+            {/* Scroll Container Wrapper for Centering */}
+            <div className="flex justify-center w-full px-6">
+                <div 
+                   ref={scrollRef}
+                   onWheel={handleWheel}
+                   className="flex overflow-x-auto gap-4 pb-8 pt-2 snap-x snap-mandatory no-scrollbar items-center max-w-full" 
+                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                   {/* Custom Mode: Manage Button */}
+                   {isCustom && (
+                      <button 
+                         onClick={onOpenDataManager}
+                         className="snap-start shrink-0 w-40 h-52 rounded-[2rem] border-2 border-dashed border-green-300 bg-green-50/40 hover:bg-green-100 flex flex-col items-center justify-center gap-3 text-green-600 transition-all active:scale-95 group"
+                      >
+                         <div className="p-3 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform group-hover:shadow-md">
+                            <Plus className="w-6 h-6" />
+                         </div>
+                         <span className="font-bold text-sm">Quản lý</span>
+                      </button>
+                   )}
 
-                  const activeClass = isCustom 
-                    ? 'bg-green-600 text-white shadow-xl shadow-green-200 scale-105 -translate-y-1' 
-                    : 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 scale-105 -translate-y-1';
-                  const icon = isCustom ? <FolderPlus className="w-6 h-6" /> : <Library className="w-6 h-6" />;
+                   {(!isCustom ? CATEGORIES : customDecks).map((item, idx) => {
+                      const isSelected = !isCustom 
+                         ? settings.selectedCategory === item 
+                         : settings.selectedDeckId === (item as CustomDeck).id;
+                      
+                      const label = !isCustom ? (item as string) : (item as CustomDeck).name;
+                      
+                      let count = 0;
+                      if (isCustom) {
+                         count = (item as CustomDeck).questions.length;
+                      } else {
+                         const cat = item as string;
+                         count = cat === 'All' ? MOCK_DATA.length : MOCK_DATA.filter(q => q.category === cat).length;
+                      }
 
-                  return (
-                     <button
-                        key={idx}
-                        onClick={() => {
-                           if (!isCustom) setSettings({...settings, selectedCategory: item as string});
-                           else setSettings({...settings, selectedDeckId: (item as CustomDeck).id});
-                        }}
-                        className={`
-                           snap-start shrink-0 w-40 h-52 rounded-[2rem] p-6 flex flex-col justify-between text-left transition-all duration-300
-                           ${isSelected 
-                              ? activeClass
-                              : 'bg-white border border-slate-100 text-slate-500 hover:border-slate-300 shadow-sm hover:shadow-md'
-                           }
-                        `}
-                     >
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSelected ? 'bg-white/20' : 'bg-slate-50'}`}>
-                           {icon}
-                        </div>
-                        <div>
-                           <p className={`font-black text-xl leading-tight line-clamp-2 mb-1.5 ${isSelected ? 'text-white' : 'text-slate-800'}`}>
-                              {label === 'All' ? 'Tất cả' : label}
-                           </p>
-                           <p className={`text-xs font-bold ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
-                              {count} câu
-                           </p>
-                        </div>
-                     </button>
-                  );
-               })}
-               
-               <div className="w-4 shrink-0" />
+                      const activeClass = isCustom 
+                        ? 'bg-green-600 text-white shadow-xl shadow-green-200 scale-105 -translate-y-1' 
+                        : 'bg-indigo-600 text-white shadow-xl shadow-indigo-200 scale-105 -translate-y-1';
+                      const icon = isCustom ? <FolderPlus className="w-6 h-6" /> : <Library className="w-6 h-6" />;
+
+                      return (
+                         <button
+                            key={idx}
+                            onClick={() => {
+                               if (!isCustom) setSettings({...settings, selectedCategory: item as string});
+                               else setSettings({...settings, selectedDeckId: (item as CustomDeck).id});
+                            }}
+                            className={`
+                               snap-start shrink-0 w-40 h-52 rounded-[2rem] p-6 flex flex-col justify-between text-left transition-all duration-300
+                               ${isSelected 
+                                  ? activeClass
+                                  : 'bg-white border border-slate-100 text-slate-500 hover:border-slate-300 shadow-sm hover:shadow-md'
+                               }
+                            `}
+                         >
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isSelected ? 'bg-white/20' : 'bg-slate-50'}`}>
+                               {icon}
+                            </div>
+                            <div>
+                               <p className={`font-black text-xl leading-tight line-clamp-2 mb-1.5 ${isSelected ? 'text-white' : 'text-slate-800'}`}>
+                                  {label === 'All' ? 'Tất cả' : label}
+                               </p>
+                               <p className={`text-xs font-bold ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                                  {count} câu
+                               </p>
+                            </div>
+                         </button>
+                      );
+                   })}
+                   
+                   {/* Spacer for right padding visual balance in scroll */}
+                   <div className="w-1 shrink-0" />
+                </div>
             </div>
+
+            {/* Scroll Button Right */}
+            <button 
+              onClick={() => scroll('right')}
+              className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-3 bg-white/80 backdrop-blur-sm border border-slate-200 rounded-full shadow-lg text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white hover:text-indigo-600 hidden md:block"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
         </div>
 
       </main>
