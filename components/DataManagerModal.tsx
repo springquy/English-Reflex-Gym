@@ -172,7 +172,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                         </button>
                      </div>
                      <p className="text-sm text-slate-500 bg-slate-50 p-4 rounded-2xl border border-slate-100 leading-relaxed">
-                        Copy prompt mẫu -> Gửi cho ChatGPT/Gemini kèm nội dung học -> Copy JSON trả về dán xuống dưới.
+                        Copy prompt mẫu - Gửi cho Gemini kèm nội dung học - Copy JSON trả về.
                      </p>
                   </div>
 
@@ -183,7 +183,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                         <textarea 
                            value={jsonInput}
                            onChange={(e) => setJsonInput(e.target.value)}
-                           placeholder='[{"id": 1, "vietnamese": "...", ...}]'
+                           placeholder='Dán kết quả JSON từ Gemini vào đây...'
                            className="w-full h-48 bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 resize-none"
                         />
                         <FileJson className="absolute bottom-5 right-5 w-6 h-6 text-slate-300" />
