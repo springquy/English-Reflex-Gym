@@ -111,13 +111,11 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
 
   const handleConnectDrive = () => performConnection(false);
 
-  const handleSwitchAccount = async () => {
-      if (confirm("Bạn có muốn đăng xuất để đổi tài khoản khác không?")) {
+  const handleLogout = async () => {
+      if (confirm("Bạn có chắc muốn đăng xuất khỏi Google Drive?")) {
         disconnectGoogle();
         localStorage.removeItem('english_gym_drive_connected');
         setIsDriveConnected(false);
-        // Force account selection on next sign in
-        performConnection(true); 
       }
   };
 
@@ -372,38 +370,33 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                             )}
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-3">
-                            <div className="flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-2 text-blue-800 font-bold text-sm">
-                                    <Cloud className="w-5 h-5" />
-                                    <div className="flex flex-col">
-                                        <span>Đã kết nối Drive</span>
-                                        <span className="text-[10px] font-normal text-slate-500">Dữ liệu được bảo vệ an toàn</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex flex-col items-end gap-1">
-                                    <button 
-                                        onClick={handleSyncDrive}
-                                        disabled={isSyncing}
-                                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-[10px] flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm"
-                                    >
-                                        <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} /> 
-                                        {isSyncing ? 'Syncing...' : 'Sync Ngay'}
-                                    </button>
-                                    <span className="text-[9px] text-slate-400 font-bold">
-                                        {lastSyncedTime ? `Lần cuối: ${lastSyncedTime}` : 'Chưa sync'}
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 text-blue-800 font-bold text-sm min-w-0">
+                                <Cloud className="w-5 h-5 shrink-0" />
+                                <div className="flex flex-col truncate">
+                                    <span>Đã kết nối Drive</span>
+                                    <span className="text-[10px] font-normal text-slate-500 truncate">
+                                        {lastSyncedTime ? `Lần cuối: ${lastSyncedTime}` : 'Dữ liệu được bảo vệ an toàn'}
                                     </span>
                                 </div>
                             </div>
-                            
-                            {/* Logout Button */}
-                            <button 
-                                onClick={handleSwitchAccount}
-                                className="w-full py-2 bg-white border border-slate-200 text-slate-500 rounded-lg font-bold text-[10px] flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-red-500 hover:border-red-100 transition-colors"
-                            >
-                                <LogOut className="w-3 h-3" /> Đăng xuất / Đổi tài khoản
-                            </button>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button 
+                                    onClick={handleLogout}
+                                    className="px-3 py-1.5 bg-white border border-slate-200 text-slate-500 rounded-lg font-bold text-[10px] flex items-center gap-1.5 hover:bg-red-50 hover:text-red-500 hover:border-red-100 transition-colors whitespace-nowrap"
+                                >
+                                    <LogOut className="w-3 h-3" /> Đăng xuất
+                                </button>
+                                <button 
+                                    onClick={handleSyncDrive}
+                                    disabled={isSyncing}
+                                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-[10px] flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
+                                >
+                                    <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} /> 
+                                    {isSyncing ? 'Đang bộ...' : 'Đồng bộ ngay'}
+                                </button>
+                            </div>
                         </div>
                     )}
                  </div>
