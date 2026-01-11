@@ -1,8 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, FolderPlus, FileJson, Copy, Check, Trash2, Plus, ArrowLeft, Pencil, Download, Upload, AlertCircle, Cloud, RefreshCw, LogIn, ExternalLink, Info } from 'lucide-react';
+import { X, FolderPlus, FileJson, Copy, Check, Trash2, Plus, ArrowLeft, Pencil, Download, Upload, AlertCircle, Cloud, RefreshCw, LogIn, ExternalLink, Info, ShieldAlert, LogOut } from 'lucide-react';
 import { CustomDeck, Question } from '../types';
-import { initGoogleDrive, signInToGoogle, syncWithDrive, saveToDrive } from '../services/driveService';
+import { initGoogleDrive, signInToGoogle, syncWithDrive, saveToDrive, disconnectGoogle } from '../services/driveService';
 import { GOOGLE_CLIENT_ID } from '../constants';
 
 interface DataManagerModalProps {
@@ -49,12 +49,20 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
   const [originUrl, setOriginUrl] = useState('');
+  const [accessDenied, setAccessDenied] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Init Drive
+  // Init Drive and Restore State
   useEffect(() => {
     setOriginUrl(window.location.origin);
+    
+    // Check localStorage for persisted connection state
+    const wasConnected = localStorage.getItem('english_gym_drive_connected') === 'true';
+    if (wasConnected) {
+        setIsDriveConnected(true);
+    }
+
     if (GOOGLE_CLIENT_ID) {
         initGoogleDrive(GOOGLE_CLIENT_ID, (success) => {
             setIsDriveReady(success);
@@ -82,26 +90,64 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
   };
 
   // --- DRIVE ACTIONS ---
-  const handleConnectDrive = async () => {
+  
+  // Connect logic
+  const performConnection = async (forceSelectAccount = false) => {
+    setAccessDenied(false);
     try {
-        await signInToGoogle();
+        await signInToGoogle(forceSelectAccount);
         setIsDriveConnected(true);
-        // Auto sync on connect
-        handleSyncDrive();
-    } catch (e) {
-        alert("Đăng nhập thất bại: " + JSON.stringify(e));
+        localStorage.setItem('english_gym_drive_connected', 'true');
+        handleSyncDrive(); // Auto sync after connect
+    } catch (e: any) {
+        if (e.message === 'ACCESS_DENIED_TEST_USER') {
+            setAccessDenied(true);
+        } else {
+            console.error(e);
+            alert("Đăng nhập thất bại. Vui lòng thử lại.");
+        }
     }
   };
 
+  const handleConnectDrive = () => performConnection(false);
+
+  const handleSwitchAccount = async () => {
+      if (confirm("Bạn có muốn đăng xuất để đổi tài khoản khác không?")) {
+        disconnectGoogle();
+        localStorage.removeItem('english_gym_drive_connected');
+        setIsDriveConnected(false);
+        // Force account selection on next sign in
+        performConnection(true); 
+      }
+  };
+
   const handleSyncDrive = async () => {
-      if (!isDriveConnected) return;
+      // Even if UI says connected, check if we actually have a valid token logic handled in service
+      // If service throws AUTH_REQUIRED, we assume token expired (e.g. F5) and try to re-sign in silently/promptly
+      
       setIsSyncing(true);
       try {
           const result = await syncWithDrive(customDecks);
           onSaveDecks(result.decks);
           setLastSyncedTime(new Date(result.lastSynced).toLocaleString());
       } catch (e: any) {
-          alert("Lỗi đồng bộ: " + e.message);
+          if (e.message === 'AUTH_REQUIRED') {
+             // Token missing (F5 reload case). Re-auth automatically.
+             console.log("Token expired or missing, re-authenticating...");
+             try {
+                await signInToGoogle(); 
+                // Retry sync once
+                const result = await syncWithDrive(customDecks);
+                onSaveDecks(result.decks);
+                setLastSyncedTime(new Date(result.lastSynced).toLocaleString());
+             } catch (retryErr) {
+                alert("Phiên đăng nhập hết hạn. Vui lòng nhấn nút Kết nối lại.");
+                setIsDriveConnected(false);
+                localStorage.removeItem('english_gym_drive_connected');
+             }
+          } else {
+             alert("Lỗi đồng bộ: " + e.message);
+          }
       } finally {
           setIsSyncing(false);
       }
@@ -291,6 +337,16 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                                 <p className="text-[10px] text-red-500 text-center">
                                     Developer note: Hãy thêm Client ID vào file constants.ts
                                 </p>
+                            ) : accessDenied ? (
+                                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                                   <div className="flex items-center gap-2 mb-1.5">
+                                      <ShieldAlert className="w-4 h-4 text-amber-600" />
+                                      <p className="text-[10px] text-amber-800 font-bold">Lỗi 403: Chưa được cấp quyền truy cập</p>
+                                   </div>
+                                   <p className="text-[10px] text-amber-700 mb-2 leading-relaxed">
+                                      Do ứng dụng đang ở chế độ <b>Testing</b>, bạn cần thêm email của mình vào danh sách <b>Test users</b> trên Google Cloud.
+                                   </p>
+                                </div>
                             ) : (
                                 <div className="p-3 bg-blue-100/50 rounded-xl border border-blue-200/50">
                                    <div className="flex items-start gap-2 mb-1">
@@ -316,28 +372,38 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                             )}
                         </div>
                     ) : (
-                        <div className="flex items-center justify-between gap-3">
-                             <div className="flex items-center gap-2 text-blue-800 font-bold text-sm">
-                                <Cloud className="w-5 h-5" />
-                                <div className="flex flex-col">
-                                    <span>Đã kết nối Drive</span>
-                                    <span className="text-[10px] font-normal text-slate-500">Tự động đồng bộ</span>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2 text-blue-800 font-bold text-sm">
+                                    <Cloud className="w-5 h-5" />
+                                    <div className="flex flex-col">
+                                        <span>Đã kết nối Drive</span>
+                                        <span className="text-[10px] font-normal text-slate-500">Dữ liệu được bảo vệ an toàn</span>
+                                    </div>
                                 </div>
-                             </div>
 
-                             <div className="flex flex-col items-end gap-1">
-                                <button 
-                                    onClick={handleSyncDrive}
-                                    disabled={isSyncing}
-                                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-[10px] flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm"
-                                >
-                                    <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} /> 
-                                    {isSyncing ? 'Syncing...' : 'Sync Ngay'}
-                                </button>
-                                <span className="text-[9px] text-slate-400 font-bold">
-                                    {lastSyncedTime ? `Lần cuối: ${lastSyncedTime}` : 'Chưa sync'}
-                                </span>
-                             </div>
+                                <div className="flex flex-col items-end gap-1">
+                                    <button 
+                                        onClick={handleSyncDrive}
+                                        disabled={isSyncing}
+                                        className="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-[10px] flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm"
+                                    >
+                                        <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} /> 
+                                        {isSyncing ? 'Syncing...' : 'Sync Ngay'}
+                                    </button>
+                                    <span className="text-[9px] text-slate-400 font-bold">
+                                        {lastSyncedTime ? `Lần cuối: ${lastSyncedTime}` : 'Chưa sync'}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {/* Logout Button */}
+                            <button 
+                                onClick={handleSwitchAccount}
+                                className="w-full py-2 bg-white border border-slate-200 text-slate-500 rounded-lg font-bold text-[10px] flex items-center justify-center gap-2 hover:bg-slate-50 hover:text-red-500 hover:border-red-100 transition-colors"
+                            >
+                                <LogOut className="w-3 h-3" /> Đăng xuất / Đổi tài khoản
+                            </button>
                         </div>
                     )}
                  </div>
