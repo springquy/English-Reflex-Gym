@@ -374,8 +374,9 @@ export const Game: React.FC<GameProps> = ({ settings, questionsSource, onEnd, on
             </div>
           </div>
 
-          {/* Right Column (Hint / Result) - span 5 */}
+          {/* Right Column (Hint / Result / Loading) - span 5 */}
           <div className="md:col-span-5 w-full">
+            {/* HINT STATE */}
             {gameState !== GameState.REVIEWING && (
               <div className="flex flex-col items-center justify-center space-y-4 md:min-h-[200px]">
                 {currentQ.hint?.structure || currentQ.hint?.vocab ? (
@@ -414,7 +415,25 @@ export const Game: React.FC<GameProps> = ({ settings, questionsSource, onEnd, on
               </div>
             )}
 
-            {gameState === GameState.REVIEWING && feedback && (
+            {/* LOADING AI STATE */}
+            {gameState === GameState.REVIEWING && isAIEvaluating && (
+               <div className="w-full bg-white rounded-[2rem] p-6 md:p-8 border border-slate-200 shadow-sm animate-pulse">
+                  <div className="flex items-start gap-4 mb-6">
+                     <div className="p-3 rounded-2xl shrink-0 bg-slate-100 w-12 h-12"></div>
+                     <div className="w-full pt-1 space-y-2">
+                        <div className="h-5 bg-slate-100 rounded-md w-3/4"></div>
+                        <div className="h-4 bg-slate-100 rounded-md w-1/2"></div>
+                     </div>
+                  </div>
+                  <div className="flex flex-col items-center justify-center py-6 gap-3 text-indigo-500">
+                      <Loader2 className="w-8 h-8 animate-spin" />
+                      <span className="text-xs font-bold uppercase tracking-widest">AI đang chấm điểm...</span>
+                  </div>
+               </div>
+            )}
+
+            {/* FEEDBACK RESULT STATE */}
+            {gameState === GameState.REVIEWING && !isAIEvaluating && feedback && (
               <div className="w-full bg-white rounded-[2rem] p-6 md:p-8 border border-slate-200 shadow-[0_10px_30px_rgba(0,0,0,0.05)] animate-in slide-in-from-right-8 duration-500">
                 <div className="flex items-start gap-4 mb-6">
                   <div className={`p-3 rounded-2xl shrink-0 ${feedback.isCorrect ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
@@ -424,29 +443,21 @@ export const Game: React.FC<GameProps> = ({ settings, questionsSource, onEnd, on
                     <h3 className={`text-lg md:text-xl font-black leading-tight ${feedback.isCorrect ? 'text-green-700' : 'text-red-700'}`}>
                       {feedback.msg}
                     </h3>
-                    {isAIEvaluating && (
-                       <div className="mt-2 flex items-center gap-2 text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-xl w-fit animate-pulse">
-                          <Sparkles className="w-3.5 h-3.5" /> 
-                          <span className="text-xs font-bold">AI đang kiểm tra...</span>
-                       </div>
-                    )}
                   </div>
                 </div>
 
-                {!isAIEvaluating && (
-                  <div className="mb-6 pb-6 border-b border-slate-100">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">ĐÁP ÁN ĐÚNG</p>
-                    <div 
-                       onClick={() => playAudio(currentQ.main_answer)}
-                       className="flex items-center gap-3 cursor-pointer hover:text-indigo-600 transition-colors group"
-                    >
-                       <div className="p-2.5 rounded-full border border-slate-200 text-slate-400 group-hover:border-indigo-200 group-hover:text-indigo-500 bg-white">
-                          <Volume2 className="w-4 h-4" />
-                       </div>
-                       <p className="text-xl font-black text-slate-900 leading-tight group-hover:text-indigo-900">{currentQ.main_answer}</p>
-                    </div>
+                <div className="mb-6 pb-6 border-b border-slate-100">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">ĐÁP ÁN ĐÚNG</p>
+                  <div 
+                      onClick={() => playAudio(currentQ.main_answer)}
+                      className="flex items-center gap-3 cursor-pointer hover:text-indigo-600 transition-colors group"
+                  >
+                      <div className="p-2.5 rounded-full border border-slate-200 text-slate-400 group-hover:border-indigo-200 group-hover:text-indigo-500 bg-white">
+                        <Volume2 className="w-4 h-4" />
+                      </div>
+                      <p className="text-xl font-black text-slate-900 leading-tight group-hover:text-indigo-900">{currentQ.main_answer}</p>
                   </div>
-                )}
+                </div>
 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">

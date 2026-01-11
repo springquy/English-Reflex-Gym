@@ -35,7 +35,7 @@ export const evaluateAnswerWithAI = async (
           },
           required: ["isCorrect", "feedback"]
         },
-        systemInstruction: "You are an English teacher. Your goal is to determine if the student's spoken answer is semantically equivalent to the target answer, even if the wording is different. Be encouraging."
+        systemInstruction: "You are an English teacher. Your goal is to determine if the student's spoken answer is semantically equivalent to the target answer. \n\nIMPORTANT RULE FOR VIETNAMESE FEEDBACK:\n- Since this is a SPEAKING exercise, NEVER use the word 'nghe' (hear/listen) or 'nghe nhầm'.\n- Always use 'nói' (say/speak) or 'phát âm' (pronounce).\n- Example: Instead of 'Bạn nghe nhầm A thành B', say 'Bạn nói nhầm A thành B' or 'Bạn phát âm A thành B'."
       },
       contents: [
         {
@@ -59,7 +59,7 @@ export const evaluateAnswerWithAI = async (
                 
                 Return JSON:
                 - isCorrect: true/false
-                - feedback: A short explanation in Vietnamese (max 15 words). If correct, praise them. If wrong, explain the error.
+                - feedback: A short explanation in Vietnamese (max 15 words). If correct, praise them. If wrong, point out the error politely using "Bạn nói...".
               `
             }
           ]
