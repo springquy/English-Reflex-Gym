@@ -1,6 +1,13 @@
 
 import { Question, Category } from './types';
 
+// --- CẤU HÌNH DÀNH CHO DEVELOPER ---
+// 1. Vào https://console.cloud.google.com/
+// 2. Tạo project -> Credentials -> OAuth Client ID (Web Application)
+// 3. Thêm URL hiện tại (ví dụ http://localhost:5173) vào "Authorized JavaScript origins"
+// 4. Copy Client ID và dán vào dưới đây:
+export const GOOGLE_CLIENT_ID = "107509440994-n43leeg3egplmn1o01gqdlm89s19dkah.apps.googleusercontent.com"; // Ví dụ: "123456789-abc...apps.googleusercontent.com"
+
 export const FILLER_WORDS = ["um", "uh", "ah", "well", "so", "like", "actually", "basically", "literally", "hmm"];
 
 export const CONTRACTIONS: Record<string, string> = {

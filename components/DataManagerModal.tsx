@@ -1,7 +1,9 @@
 
-import React, { useState } from 'react';
-import { X, FolderPlus, FileJson, Copy, Check, Trash2, Plus, ArrowLeft, Pencil } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, FolderPlus, FileJson, Copy, Check, Trash2, Plus, ArrowLeft, Pencil, Download, Upload, AlertCircle, Cloud, RefreshCw, LogIn, ExternalLink, Info } from 'lucide-react';
 import { CustomDeck, Question } from '../types';
+import { initGoogleDrive, signInToGoogle, syncWithDrive, saveToDrive } from '../services/driveService';
+import { GOOGLE_CLIENT_ID } from '../constants';
 
 interface DataManagerModalProps {
   customDecks: CustomDeck[];
@@ -39,11 +41,37 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
   const [editingDeckId, setEditingDeckId] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
+  
+  // Drive State
+  const [isDriveReady, setIsDriveReady] = useState(false);
+  const [isDriveConnected, setIsDriveConnected] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
+  const [originUrl, setOriginUrl] = useState('');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Init Drive
+  useEffect(() => {
+    setOriginUrl(window.location.origin);
+    if (GOOGLE_CLIENT_ID) {
+        initGoogleDrive(GOOGLE_CLIENT_ID, (success) => {
+            setIsDriveReady(success);
+        });
+    }
+  }, []);
 
   const handleCopyPrompt = () => {
     navigator.clipboard.writeText(GEMINI_PROMPT);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyUrl = () => {
+    navigator.clipboard.writeText(originUrl);
+    setUrlCopied(true);
+    setTimeout(() => setUrlCopied(false), 2000);
   };
 
   const resetForm = () => {
@@ -53,7 +81,91 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
     setImportError(null);
   };
 
-  const handleSave = () => {
+  // --- DRIVE ACTIONS ---
+  const handleConnectDrive = async () => {
+    try {
+        await signInToGoogle();
+        setIsDriveConnected(true);
+        // Auto sync on connect
+        handleSyncDrive();
+    } catch (e) {
+        alert("Đăng nhập thất bại: " + JSON.stringify(e));
+    }
+  };
+
+  const handleSyncDrive = async () => {
+      if (!isDriveConnected) return;
+      setIsSyncing(true);
+      try {
+          const result = await syncWithDrive(customDecks);
+          onSaveDecks(result.decks);
+          setLastSyncedTime(new Date(result.lastSynced).toLocaleString());
+      } catch (e: any) {
+          alert("Lỗi đồng bộ: " + e.message);
+      } finally {
+          setIsSyncing(false);
+      }
+  };
+
+  // --- LOGIC XUẤT FILE (BACKUP) ---
+  const handleExportBackup = () => {
+    if (customDecks.length === 0) {
+        alert("Chưa có dữ liệu để xuất.");
+        return;
+    }
+    const dataStr = JSON.stringify(customDecks, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    const date = new Date().toISOString().split('T')[0];
+    link.download = `english-gym-backup-${date}.json`;
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // --- LOGIC NHẬP FILE (RESTORE) ---
+  const handleImportFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const content = e.target?.result as string;
+            const parsed = JSON.parse(content);
+            
+            if (!Array.isArray(parsed)) throw new Error("File không hợp lệ (Không phải mảng).");
+            
+            // Validate sơ bộ cấu trúc
+            const isValid = parsed.every(d => d.id && d.name && Array.isArray(d.questions));
+            if (!isValid) throw new Error("Cấu trúc dữ liệu trong file không đúng format của English Gym.");
+
+            const existingIds = new Set(customDecks.map(d => d.id));
+            const newDecks = parsed.filter((d: CustomDeck) => !existingIds.has(d.id));
+
+            if (newDecks.length === 0) {
+                alert("Tất cả dữ liệu trong file đã tồn tại trong ứng dụng.");
+            } else {
+                const merged = [...parsed, ...customDecks.filter(d => !parsed.find((p: CustomDeck) => p.id === d.id))];
+                onSaveDecks(merged); 
+                alert(`Đã khôi phục thành công ${parsed.length} bộ dữ liệu.`);
+                // If connected, sync to drive
+                if (isDriveConnected) {
+                    saveToDrive(merged).then(() => setLastSyncedTime(new Date().toLocaleString()));
+                }
+            }
+        } catch (err: any) {
+            alert("Lỗi khi đọc file: " + err.message);
+        } finally {
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSave = async () => {
     try {
       if (!jsonInput.trim()) return;
       if (!deckName.trim()) { setImportError("Vui lòng đặt tên cho bộ dữ liệu."); return; }
@@ -72,14 +184,15 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
         note: q.note || ""
       }));
 
+      let newDecks = [];
+
       if (editingDeckId) {
         // Update existing deck
-        const updatedDecks = customDecks.map(deck => 
+        newDecks = customDecks.map(deck => 
           deck.id === editingDeckId 
             ? { ...deck, name: deckName, questions: normalizedQuestions } 
             : deck
         );
-        onSaveDecks(updatedDecks);
       } else {
         // Create new deck
         const newDeck: CustomDeck = {
@@ -88,7 +201,13 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
           questions: normalizedQuestions,
           createdAt: Date.now()
         };
-        onSaveDecks([newDeck, ...customDecks]);
+        newDecks = [newDeck, ...customDecks];
+      }
+
+      onSaveDecks(newDecks);
+
+      if (isDriveConnected) {
+         saveToDrive(newDecks).then(() => setLastSyncedTime(new Date().toLocaleString()));
       }
 
       resetForm();
@@ -111,6 +230,9 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
     if (confirm("Bạn có chắc muốn xoá bộ dữ liệu này không?")) {
       const filtered = customDecks.filter(d => d.id !== id);
       onSaveDecks(filtered);
+      if (isDriveConnected) {
+         saveToDrive(filtered).then(() => setLastSyncedTime(new Date().toLocaleString()));
+      }
     }
   };
 
@@ -143,6 +265,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
            
            {view === 'list' ? (
               <div className="space-y-4">
+                 {/* Main Action: Add New */}
                  <button 
                     onClick={() => { resetForm(); setView('add'); }}
                     className="w-full py-4 border-2 border-dashed border-green-300 bg-green-50/40 hover:bg-green-50 text-green-700 rounded-2xl font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
@@ -150,10 +273,107 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                     <Plus className="w-5 h-5" /> Thêm bộ dữ liệu mới
                  </button>
 
-                 <div className="space-y-3 mt-6">
+                 {/* Google Drive Section */}
+                 <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50">
+                    {!isDriveConnected ? (
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={handleConnectDrive}
+                                disabled={!isDriveReady || !GOOGLE_CLIENT_ID}
+                                className="w-full py-3 bg-white border border-blue-200 text-blue-700 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors shadow-sm relative overflow-hidden group"
+                            >
+                                <div className="absolute inset-0 bg-blue-100/50 translate-x-[-100%] group-hover:translate-x-0 transition-transform duration-300"></div>
+                                <LogIn className="w-4 h-4 relative z-10" /> 
+                                <span className="relative z-10">{!GOOGLE_CLIENT_ID ? 'Chưa cấu hình Client ID' : 'Kết nối Google Drive'}</span>
+                            </button>
+                            
+                            {!GOOGLE_CLIENT_ID ? (
+                                <p className="text-[10px] text-red-500 text-center">
+                                    Developer note: Hãy thêm Client ID vào file constants.ts
+                                </p>
+                            ) : (
+                                <div className="p-3 bg-blue-100/50 rounded-xl border border-blue-200/50">
+                                   <div className="flex items-start gap-2 mb-1">
+                                      <Info className="w-3.5 h-3.5 text-blue-600 mt-0.5" />
+                                      <p className="text-[10px] text-blue-800 font-bold">Lỗi 400: invalid_request?</p>
+                                   </div>
+                                   <p className="text-[10px] text-blue-700 mb-2 leading-relaxed">
+                                      Copy URL này và dán vào <span className="font-bold">Authorized JavaScript origins</span> trong Google Cloud Console:
+                                   </p>
+                                   <div className="flex items-center gap-2">
+                                       <code className="flex-1 bg-white p-2 rounded-lg border border-blue-200 text-[10px] font-mono text-slate-600 break-all select-all">
+                                          {originUrl}
+                                       </code>
+                                       <button 
+                                          onClick={handleCopyUrl}
+                                          className="p-2 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors flex items-center justify-center"
+                                          title="Copy URL"
+                                       >
+                                          {urlCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                       </button>
+                                   </div>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-between gap-3">
+                             <div className="flex items-center gap-2 text-blue-800 font-bold text-sm">
+                                <Cloud className="w-5 h-5" />
+                                <div className="flex flex-col">
+                                    <span>Đã kết nối Drive</span>
+                                    <span className="text-[10px] font-normal text-slate-500">Tự động đồng bộ</span>
+                                </div>
+                             </div>
+
+                             <div className="flex flex-col items-end gap-1">
+                                <button 
+                                    onClick={handleSyncDrive}
+                                    disabled={isSyncing}
+                                    className="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold text-[10px] flex items-center gap-1.5 hover:bg-blue-700 transition-colors shadow-sm"
+                                >
+                                    <RefreshCw className={`w-3 h-3 ${isSyncing ? 'animate-spin' : ''}`} /> 
+                                    {isSyncing ? 'Syncing...' : 'Sync Ngay'}
+                                </button>
+                                <span className="text-[9px] text-slate-400 font-bold">
+                                    {lastSyncedTime ? `Lần cuối: ${lastSyncedTime}` : 'Chưa sync'}
+                                </span>
+                             </div>
+                        </div>
+                    )}
+                 </div>
+
+                 {/* Backup & Restore Tools */}
+                 <div className="grid grid-cols-2 gap-3">
+                     <input 
+                        type="file" 
+                        accept=".json" 
+                        ref={fileInputRef} 
+                        className="hidden" 
+                        onChange={handleImportFile}
+                     />
+                     <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="py-3 px-4 bg-slate-50 border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                        title="Tải file JSON backup từ máy tính lên"
+                     >
+                        <Upload className="w-4 h-4" /> Nhập Backup (File)
+                     </button>
+                     <button 
+                        onClick={handleExportBackup}
+                        className="py-3 px-4 bg-slate-50 border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
+                        title="Tải toàn bộ dữ liệu về máy tính"
+                     >
+                        <Download className="w-4 h-4" /> Xuất Backup (File)
+                     </button>
+                 </div>
+
+                 <div className="space-y-3 mt-4 pt-4 border-t border-slate-100">
                     <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Danh sách hiện có ({customDecks.length})</h3>
                     {customDecks.length === 0 && (
-                       <p className="text-center text-slate-400 py-8 italic text-sm">Chưa có dữ liệu nào. Hãy thêm mới!</p>
+                       <div className="text-center py-8">
+                          <AlertCircle className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                          <p className="text-slate-400 italic text-sm">Chưa có dữ liệu nào.<br/>Hãy thêm mới hoặc nhập file backup.</p>
+                       </div>
                     )}
                     {customDecks.map(deck => (
                        <div key={deck.id} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl shadow-sm hover:border-slate-300 transition-all group">
