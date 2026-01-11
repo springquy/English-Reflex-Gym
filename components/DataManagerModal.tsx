@@ -115,6 +115,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
       
       setIsSyncing(true);
       try {
+          // Pass the current state (customDecks) which contains the latest local edits
           const result = await syncWithDrive(customDecks);
           onSaveDecks(result.decks);
           setLastSyncedTime(new Date(result.lastSynced).toLocaleString());
@@ -124,7 +125,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
              console.log("Token expired or missing, re-authenticating...");
              try {
                 await signInToGoogle(); 
-                // Retry sync once
+                // Retry sync once with the same local data
                 const result = await syncWithDrive(customDecks);
                 onSaveDecks(result.decks);
                 setLastSyncedTime(new Date(result.lastSynced).toLocaleString());
@@ -182,9 +183,21 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
             if (newDecks.length === 0) {
                 alert("Tất cả dữ liệu trong file đã tồn tại trong ứng dụng.");
             } else {
-                const merged = [...parsed, ...customDecks.filter(d => !parsed.find((p: CustomDeck) => p.id === d.id))];
+                // When importing, we assume these are "new" or "restored", set updatedAt to now to ensure they sync
+                const now = Date.now();
+                const processedImport = parsed.map((d: CustomDeck) => ({ ...d, updatedAt: d.updatedAt || now }));
+                
+                // Simple merge for import: Keep existing local, add new
+                // If ID exists, keep local version to avoid overwrite
+                const merged = [...customDecks];
+                processedImport.forEach((importedDeck: CustomDeck) => {
+                    if (!customDecks.find(d => d.id === importedDeck.id)) {
+                        merged.push(importedDeck);
+                    }
+                });
+
                 onSaveDecks(merged); 
-                alert(`Đã khôi phục thành công ${parsed.length} bộ dữ liệu.`);
+                alert(`Đã khôi phục thành công.`);
                 // If connected, sync to drive
                 if (isDriveConnected) {
                     saveToDrive(merged).then(() => setLastSyncedTime(new Date().toLocaleString()));
@@ -219,12 +232,13 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
       }));
 
       let newDecks = [];
+      const now = Date.now();
 
       if (editingDeckId) {
         // Update existing deck
         newDecks = customDecks.map(deck => 
           deck.id === editingDeckId 
-            ? { ...deck, name: deckName, questions: normalizedQuestions } 
+            ? { ...deck, name: deckName, questions: normalizedQuestions, updatedAt: now } 
             : deck
         );
       } else {
@@ -233,7 +247,8 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
           id: crypto.randomUUID(),
           name: deckName,
           questions: normalizedQuestions,
-          createdAt: Date.now()
+          createdAt: now,
+          updatedAt: now
         };
         newDecks = [newDeck, ...customDecks];
       }

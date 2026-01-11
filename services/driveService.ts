@@ -132,8 +132,7 @@ const updateFile = async (fileId: string, data: CustomDeck[]): Promise<any> => {
   const file = new Blob([fileContent], { type: 'application/json' });
 
   const accessToken = (window as any).gapi.client.getToken().access_token;
-  const form = new FormData();
-  
+  // Use PATCH for updating content
   const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
     method: 'PATCH',
     headers: new Headers({ 
@@ -154,35 +153,67 @@ const readFile = async (fileId: string): Promise<CustomDeck[]> => {
   return response.result || response.body; 
 };
 
-// Main Sync Function
+// Main Sync Function with Conflict Resolution
 export const syncWithDrive = async (localDecks: CustomDeck[]): Promise<{ decks: CustomDeck[], lastSynced: string }> => {
-  // Check if we have a token, if not (e.g. F5 refresh), try to get one silently or fail
+  // Check if we have a token
   if (!(window as any).gapi?.client?.getToken()) {
-     // We rely on the UI to trigger signInToGoogle() if this fails, 
-     // OR we can throw a specific error to let UI know auth is needed.
      throw new Error("AUTH_REQUIRED");
   }
 
   const driveFile = await findFile();
   
   if (!driveFile) {
+    // No file on drive? Just upload local
     await createFile(localDecks);
     return { decks: localDecks, lastSynced: new Date().toISOString() };
   } else {
     const driveData: CustomDeck[] = await readFile(driveFile.id);
-    const driveIds = new Set(driveData.map(d => d.id));
-    const uniqueLocal = localDecks.filter(d => !driveIds.has(d.id));
-    const merged = [...driveData, ...uniqueLocal];
     
-    if (merged.length > driveData.length) {
+    // Conflict Resolution Map
+    const mergedMap = new Map<string, CustomDeck>();
+
+    // 1. Put all Drive decks in map
+    driveData.forEach(d => mergedMap.set(d.id, d));
+
+    // 2. Iterate local decks and compare
+    localDecks.forEach(local => {
+        const remote = mergedMap.get(local.id);
+        
+        if (!remote) {
+            // New local deck, add to map
+            mergedMap.set(local.id, local);
+        } else {
+            // Conflict: Check timestamps
+            // Default to 0 if undefined (legacy data)
+            const localTime = local.updatedAt || local.createdAt || 0;
+            const remoteTime = remote.updatedAt || remote.createdAt || 0;
+
+            // If local is newer or equal, overwrite remote in map
+            if (localTime >= remoteTime) {
+                mergedMap.set(local.id, local);
+            }
+            // Else: Keep remote (it is newer), do nothing
+        }
+    });
+
+    const merged = Array.from(mergedMap.values());
+    
+    // 3. Update Drive if data changed (naive check: simple length or just always update to be safe)
+    // To be efficient, we could check JSON string equality, but for small files, just updating is fine.
+    // However, let's try to avoid unnecessary writes if exact match.
+    if (JSON.stringify(merged) !== JSON.stringify(driveData)) {
        await updateFile(driveFile.id, merged);
     }
 
-    return { decks: merged, lastSynced: driveFile.modifiedTime };
+    return { decks: merged, lastSynced: new Date().toISOString() };
   }
 };
 
 export const saveToDrive = async (decks: CustomDeck[]): Promise<string> => {
+    // Direct Save (Overwrite) - typically used after a decisive action like delete
+    // But safely we should probably re-sync? 
+    // For now, let's assume the calling component (DataManager) holds the "truth" 
+    // immediately after an edit action.
     const driveFile = await findFile();
     if (driveFile) {
         await updateFile(driveFile.id, decks);

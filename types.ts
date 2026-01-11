@@ -32,6 +32,7 @@ export interface CustomDeck {
   name: string;
   questions: Question[];
   createdAt: number;
+  updatedAt?: number; // Added for sync comparison
 }
 
 export interface GameSettings {
