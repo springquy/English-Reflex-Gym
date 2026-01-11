@@ -468,7 +468,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                  </div>
               </div>
            ) : (
-              <div className="space-y-3 animate-in slide-in-from-right-4 h-full flex flex-col">
+              <div className="space-y-4 animate-in slide-in-from-right-4 h-full flex flex-col pb-2">
                   {/* Step 1 */}
                   <div>
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">1. TÊN BỘ DỮ LIỆU</label>
@@ -477,7 +477,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                         value={deckName}
                         onChange={e => setDeckName(e.target.value)}
                         placeholder="Ví dụ: Gia đình, Du lịch..."
-                        className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 placeholder:text-slate-300 placeholder:font-medium"
+                        className="w-full px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 placeholder:text-slate-300 placeholder:font-medium"
                      />
                   </div>
 
@@ -499,13 +499,13 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
 
                   {/* Step 3 */}
                   <div className="flex-1 flex flex-col min-h-0">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">3. Dán JSON vào đây</label>
-                     <div className="relative flex-1 min-h-[100px]">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block">3. NỘI DUNG</label>
+                     <div className="relative">
                         <textarea 
                            value={jsonInput}
                            onChange={(e) => setJsonInput(e.target.value)}
-                           placeholder='Dán kết quả JSON từ Gemini vào đây...'
-                           className="w-full h-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 resize-none leading-relaxed"
+                           placeholder='['
+                           className="w-full h-32 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 resize-none leading-relaxed"
                            spellCheck={false}
                         />
                         <FileJson className="absolute bottom-3 right-3 w-4 h-4 text-slate-300 pointer-events-none" />
@@ -515,7 +515,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
 
                   <button 
                      onClick={handleSave}
-                     className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-base shadow-lg shadow-green-100 active:scale-95 transition-all shrink-0 mt-1"
+                     className="w-full py-3.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-base shadow-lg shadow-green-100 active:scale-95 transition-all shrink-0 mt-2"
                   >
                      {editingDeckId ? 'Cập nhật' : 'Lưu Bộ Dữ Liệu'}
                   </button>
