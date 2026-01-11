@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { X, FolderPlus, FileJson, Copy, Check, Trash2, Plus, ArrowLeft, Pencil, Download, Upload, AlertCircle, Cloud, RefreshCw, LogIn, ExternalLink, Info, ShieldAlert, LogOut } from 'lucide-react';
+import { X, FolderPlus, FileJson, Copy, Check, Trash2, Plus, ArrowLeft, Pencil, Download, Upload, AlertCircle, Cloud, RefreshCw, LogIn, ShieldAlert, LogOut } from 'lucide-react';
 import { CustomDeck, Question } from '../types';
 import { initGoogleDrive, signInToGoogle, syncWithDrive, saveToDrive, disconnectGoogle } from '../services/driveService';
 import { GOOGLE_CLIENT_ID } from '../constants';
@@ -41,22 +41,18 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
   const [editingDeckId, setEditingDeckId] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [urlCopied, setUrlCopied] = useState(false);
   
   // Drive State
   const [isDriveReady, setIsDriveReady] = useState(false);
   const [isDriveConnected, setIsDriveConnected] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncedTime, setLastSyncedTime] = useState<string | null>(null);
-  const [originUrl, setOriginUrl] = useState('');
   const [accessDenied, setAccessDenied] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Init Drive and Restore State
   useEffect(() => {
-    setOriginUrl(window.location.origin);
-    
     // Check localStorage for persisted connection state
     const wasConnected = localStorage.getItem('english_gym_drive_connected') === 'true';
     if (wasConnected) {
@@ -74,12 +70,6 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
     navigator.clipboard.writeText(GEMINI_PROMPT);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleCopyUrl = () => {
-    navigator.clipboard.writeText(originUrl);
-    setUrlCopied(true);
-    setTimeout(() => setUrlCopied(false), 2000);
   };
 
   const resetForm = () => {
@@ -335,7 +325,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                                 <p className="text-[10px] text-red-500 text-center">
                                     Developer note: Hãy thêm Client ID vào file constants.ts
                                 </p>
-                            ) : accessDenied ? (
+                            ) : accessDenied && (
                                 <div className="p-3 bg-amber-50 rounded-xl border border-amber-200">
                                    <div className="flex items-center gap-2 mb-1.5">
                                       <ShieldAlert className="w-4 h-4 text-amber-600" />
@@ -344,28 +334,6 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                                    <p className="text-[10px] text-amber-700 mb-2 leading-relaxed">
                                       Do ứng dụng đang ở chế độ <b>Testing</b>, bạn cần thêm email của mình vào danh sách <b>Test users</b> trên Google Cloud.
                                    </p>
-                                </div>
-                            ) : (
-                                <div className="p-3 bg-blue-100/50 rounded-xl border border-blue-200/50">
-                                   <div className="flex items-start gap-2 mb-1">
-                                      <Info className="w-3.5 h-3.5 text-blue-600 mt-0.5" />
-                                      <p className="text-[10px] text-blue-800 font-bold">Lỗi 400: invalid_request?</p>
-                                   </div>
-                                   <p className="text-[10px] text-blue-700 mb-2 leading-relaxed">
-                                      Copy URL này và dán vào <span className="font-bold">Authorized JavaScript origins</span> trong Google Cloud Console:
-                                   </p>
-                                   <div className="flex items-center gap-2">
-                                       <code className="flex-1 bg-white p-2 rounded-lg border border-blue-200 text-[10px] font-mono text-slate-600 break-all select-all">
-                                          {originUrl}
-                                       </code>
-                                       <button 
-                                          onClick={handleCopyUrl}
-                                          className="p-2 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors flex items-center justify-center"
-                                          title="Copy URL"
-                                       >
-                                          {urlCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                       </button>
-                                   </div>
                                 </div>
                             )}
                         </div>
@@ -415,14 +383,14 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                         className="py-3 px-4 bg-slate-50 border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
                         title="Tải file JSON backup từ máy tính lên"
                      >
-                        <Upload className="w-4 h-4" /> Nhập Backup (File)
+                        <Upload className="w-4 h-4" /> Nhập file JSON
                      </button>
                      <button 
                         onClick={handleExportBackup}
                         className="py-3 px-4 bg-slate-50 border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all"
                         title="Tải toàn bộ dữ liệu về máy tính"
                      >
-                        <Download className="w-4 h-4" /> Xuất Backup (File)
+                        <Download className="w-4 h-4" /> Xuất file JSON
                      </button>
                  </div>
 
@@ -431,7 +399,7 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
                     {customDecks.length === 0 && (
                        <div className="text-center py-8">
                           <AlertCircle className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                          <p className="text-slate-400 italic text-sm">Chưa có dữ liệu nào.<br/>Hãy thêm mới hoặc nhập file backup.</p>
+                          <p className="text-slate-400 italic text-sm">Chưa có dữ liệu nào.<br/>Hãy thêm mới hoặc nhập file JSON.</p>
                        </div>
                     )}
                     {customDecks.map(deck => (
