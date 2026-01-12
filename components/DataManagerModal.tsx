@@ -51,20 +51,45 @@ export const DataManagerModal: React.FC<DataManagerModalProps> = ({ customDecks,
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Init Drive and Restore State
+  // Init Drive and Auto-Reconnect State
   useEffect(() => {
     // Check localStorage for persisted connection state
     const wasConnected = localStorage.getItem('english_gym_drive_connected') === 'true';
-    if (wasConnected) {
-        setIsDriveConnected(true);
-    }
+    
+    // We don't set isDriveConnected(true) immediately here visually, 
+    // we wait for the silent auth to actually confirm it to avoid "fake connected" state.
 
     if (GOOGLE_CLIENT_ID) {
-        initGoogleDrive(GOOGLE_CLIENT_ID, (success) => {
+        initGoogleDrive(GOOGLE_CLIENT_ID, async (success) => {
             setIsDriveReady(success);
+            
+            // AUTO RECONNECT LOGIC
+            if (success && wasConnected) {
+                console.log("Phát hiện phiên làm việc cũ, đang tự động kết nối lại...");
+                setIsSyncing(true); // Show spinner while reconnecting
+                try {
+                    // forceSelectAccount = false implies silent auth if possible
+                    await signInToGoogle(false); 
+                    setIsDriveConnected(true);
+                    
+                    // Auto-sync data immediately after connection is restored
+                    // Note: customDecks here captures the initial prop value (from localStorage), which is what we want for F5 restoration
+                    const result = await syncWithDrive(customDecks);
+                    onSaveDecks(result.decks);
+                    setLastSyncedTime(new Date(result.lastSynced).toLocaleString());
+                } catch (e) {
+                    console.warn("Auto-reconnect failed:", e);
+                    // If silent auth fails (token revoked, etc.), clean up
+                    setIsDriveConnected(false);
+                    localStorage.removeItem('english_gym_drive_connected');
+                } finally {
+                    setIsSyncing(false);
+                }
+            }
         });
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
 
   const handleCopyPrompt = () => {
     navigator.clipboard.writeText(GEMINI_PROMPT);
